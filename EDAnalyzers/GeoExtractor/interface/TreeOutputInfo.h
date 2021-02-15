@@ -46,8 +46,6 @@ namespace TreeOutputInfo
 
     void clear()
     {
-      // Gen electron //
-      genEl_n = 0;
       cellid.clear();
       detectorid.clear();
       subdetid.clear();
@@ -55,6 +53,6 @@ namespace TreeOutputInfo
       waferid.clear();
     }
   };
-} // namespace TreeOutputInfo
+}
 
 #endif

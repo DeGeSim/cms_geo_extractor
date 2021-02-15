@@ -71,7 +71,7 @@
 #include <TVectorD.h>
 
 #include <fstream>
-#include <iostream>
+// #include <iostream>
 // class declaration
 //
 
@@ -95,6 +95,7 @@ private:
   hgcal::RecHitTools recHitTools;
   std::ofstream myfile;
   edm::Service<TFileService> fs;
+  TreeOutputInfo::TreeOutput *treeOutput;
 };
 
 GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
@@ -251,6 +252,13 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     cell.y = recHitTools.getPosition(cID).y();
     cell.neighbors = handle_topo_HGCal->neighbors(cID);
 
+    treeOutput->cellid.push_back(cell.Id);
+    treeOutput->detectorid.push_back(detectorid);
+    treeOutput->subdetid.push_back(subdetid);
+    treeOutput->layerid.push_back(layerid);
+    treeOutput->waferid.push_back(waferid);
+    
+
     myfile << "\tDet " << cID.det();
     myfile << "\tSubdet " << subdetid;
     myfile << "\tLayer " << layerid;
@@ -259,7 +267,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     myfile << "\tx " << cell.x;
     myfile << "\ty " << cell.y;
     myfile << "\tneighbors ";
-    for (auto elem : cell.neighbors)
+    for (DetId elem : cell.neighbors)
     {
       myfile << elem.rawId() << ", ";
     }
@@ -267,6 +275,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     n_printed++;
     if (n_printed > 1000)
     {
+      treeOutput->fill();
       return;
     }
   }

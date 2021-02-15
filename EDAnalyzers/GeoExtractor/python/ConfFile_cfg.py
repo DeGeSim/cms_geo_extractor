@@ -45,6 +45,7 @@ process.source = cms.Source(
     fileNames=inputFileNames
 )
 # process.source = cms.Source("EmptySource")
+process.TFileService = cms.Service("TFileService", fileName=cms.string("DetIdLUT.root"))
 
 process.analyzer =cms.EDAnalyzer("GeoExtractor")
 process.p = cms.Path(process.analyzer)
