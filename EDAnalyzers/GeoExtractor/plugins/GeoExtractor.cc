@@ -106,20 +106,20 @@ GeoExtractor::~GeoExtractor() { myfile.close(); }
 struct Cell {
   float x;
   float y;
-  DetID Id;
-  std::vector<DetID> neighbors;
+  DetId Id;
+  std::vector<DetId> neighbors;
 };
 struct Tile {
   float middle_x;
   float middle_y;
-  std::map<DetID, Cell> cells;
+  std::map<DetId, Cell> cells;
 };
 
 struct Wafer {
   float middle_x;
   float middle_y;
   float si_thickness;
-  std::map<DetID, Cell> cells;
+  std::map<DetId, Cell> cells;
 };
 
 struct Layer {
@@ -140,11 +140,14 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   iSetup.get<CaloGeometryRecord>().get(geom);
   recHitTools.setGeometry(*(geom.product()));
 
+
+
+  int n_printed = 0;
   //get all valid cells in the geometry, will be filtered later
   const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
 
   // Filter the Ids
-  const std::vector<DetId> v_detId;
+  std::vector<DetId> v_detId;
   for (int i = 0; i < (int)v_allCellIds.size(); i++) {
     // Skip IDs from other detector parts
     if (v_allCellIds[i].det() != DetId::HGCalEE && v_allCellIds[i].det() != DetId::HGCalHSi &&
@@ -153,13 +156,14 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     }
     // Todo Position check
     // If all checks are pass, add the detId to the list of valid Ids.
-    v_detId.push_back(v_allCellIds[i])
+    v_detId.push_back(v_allCellIds[i]);
   }
 
   //Setup the map, that contains all the Structures
   //Det -> SubDet -> Layer -> Wafer -> Cell
-  //std::map<int, std::map<int, std::vector<DetId>>> m_DetID;
-  std::map<int, Det> m_DetID;
+  //std::map<int, std::map<int, std::vector<DetId>>> m_DetId;
+  std::map<int, Det> m_DetId;
+  
 
   for (int i = 0; i < (int)v_detId.size(); i++) {
     DetId cID = v_detId[i];
@@ -173,10 +177,10 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     // Setup the detector
     int detectorid = cID.det();
     // if detector not in map, initialize it;
-    if (m_DetID.find(detectorid) == m_DetID.end()) {
-      m_DetID[detectorid];
+    if (m_DetId.find(detectorid) == m_DetId.end()) {
+      m_DetId[detectorid];
     }
-    Det &detector = m_DetID[detectorid];
+    Det &detector = m_DetId[detectorid];
 
     //Setup the subdetector
     int subdetid = cID.subdetId();
@@ -189,7 +193,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     int layerid = recHitTools.getLayer(cID);
     if (subdet.layers.find(layerid) == subdet.layers.end()) {
       subdet.layers[layerid];
-      subdet.layers[layerid].z = recHitTools.getPosition(cID)[2];
+      subdet.layers[layerid].z = recHitTools.getPosition(cID).z();
     }
     Layer &layer = subdet.layers[layerid];
 
@@ -209,14 +213,15 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     Cell &cell = wafer.cells[cID];
 
     cell.Id = cID;
-    cell.x = recHitTools.getPosition(curcell.Id)[0];
-    cell.y = recHitTools.getPosition(curcell.Id)[1];
+    cell.x = recHitTools.getPosition(cID).x();
+    cell.y = recHitTools.getPosition(cID).y();
+    // cell.neighbors = handle_topo_HGCal->neighbors(cID);
 
     myfile << "\tDet" << cID.det();
     myfile << "\tSubdet" << subdetid;
     myfile << "\tLayer" << layerid;
-    myfile << "\tWafer" << waferid;
-    myfile << "\tCellID" << cell.Id;
+    myfile << "\tWafer (" << waferid.first << "," << waferid.second<<")" ;
+    myfile << "\tCellID" << cell.Id.rawId();
     myfile << "\tx" << cell.x;
     myfile << "\ty" << cell.y;
     myfile << "\n";
