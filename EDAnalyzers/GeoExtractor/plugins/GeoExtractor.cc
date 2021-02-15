@@ -21,7 +21,7 @@
 
 // user include files
 
-// #include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
 // #include "DataFormats/CaloTowers/interface/CaloTowerDefs.h"
 // #include "DataFormats/Common/interface/MapOfVectors.h"
 // #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
@@ -60,6 +60,7 @@
 // #include "SimDataFormats/CaloHit/interface/PCaloHit.h"
 // #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 // #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "EDAnalyzers/GeoExtractor/interface/TreeOutputInfo.h"
 
 #include <Compression.h>
 #include <TH1F.h>
@@ -79,7 +80,8 @@
 // from  edm::one::EDAnalyzer<>
 // This will improve performance in multithreaded jobs.
 
-class GeoExtractor : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+class GeoExtractor : public edm::one::EDAnalyzer<edm::one::SharedResources>
+{
 public:
   explicit GeoExtractor(const edm::ParameterSet &);
   ~GeoExtractor();
@@ -92,55 +94,72 @@ private:
   edm::ESHandle<CaloGeometry> geom;
   hgcal::RecHitTools recHitTools;
   std::ofstream myfile;
+  edm::Service<TFileService> fs;
 };
 
-GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig) {
+GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
+{
   myfile.open("output.txt");
   myfile.clear();
+  usesResource("TFileService");
+  treeOutput = new TreeOutputInfo::TreeOutput("tree", fs);
 }
 GeoExtractor::~GeoExtractor() { myfile.close(); }
 
 //
 // member functions
 //
-struct Cell {
+struct Cell
+{
   float x;
   float y;
   DetId Id;
   std::vector<DetId> neighbors;
 };
-struct Tile {
+struct Tile
+{
   float middle_x;
   float middle_y;
   std::map<DetId, Cell> cells;
 };
 
-struct Wafer {
+struct Wafer
+{
   float middle_x;
   float middle_y;
   float si_thickness;
   std::map<DetId, Cell> cells;
 };
 
-struct Layer {
+struct Layer
+{
   float z;
   std::map<std::pair<int, int>, Wafer> wafers;
 };
 
-struct Subdet {
+struct Subdet
+{
   std::map<int, Layer> layers;
 };
 
-struct Det {
+struct Det
+{
   std::map<int, Subdet> subdetectors;
 };
 
 // ------------ method called for each event  ------------
-void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup) {
+void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup)
+{
   iSetup.get<CaloGeometryRecord>().get(geom);
   recHitTools.setGeometry(*(geom.product()));
 
-
+  std::map<int, edm::ESHandle<HGCalTopology> > m_topo;
+  m_topo[DetId::HGCalEE];
+  iSetup.get<IdealGeometryRecord>().get("HGCalEESensitive", m_topo[DetId::HGCalEE]);
+  m_topo[DetId::HGCalHSi];
+  iSetup.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive", m_topo[DetId::HGCalHSi]);
+  m_topo[DetId::HGCalHSc];
+  iSetup.get<IdealGeometryRecord>().get("HGCalHEScintillatorSensitive", m_topo[DetId::HGCalHSc]);
 
   int n_printed = 0;
   //get all valid cells in the geometry, will be filtered later
@@ -148,10 +167,12 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
   // Filter the Ids
   std::vector<DetId> v_detId;
-  for (int i = 0; i < (int)v_allCellIds.size(); i++) {
+  for (int i = 0; i < (int)v_allCellIds.size(); i++)
+  {
     // Skip IDs from other detector parts
     if (v_allCellIds[i].det() != DetId::HGCalEE && v_allCellIds[i].det() != DetId::HGCalHSi &&
-        v_allCellIds[i].det() != DetId::HGCalHSc) {
+        v_allCellIds[i].det() != DetId::HGCalHSc)
+    {
       continue;
     }
     // Todo Position check
@@ -163,35 +184,47 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   //Det -> SubDet -> Layer -> Wafer -> Cell
   //std::map<int, std::map<int, std::vector<DetId>>> m_DetId;
   std::map<int, Det> m_DetId;
-  
 
-  for (int i = 0; i < (int)v_detId.size(); i++) {
+  for (int i = 0; i < (int)v_detId.size(); i++)
+  {
     DetId cID = v_detId[i];
     // check angle, forward
 
     // Logmessage
-    if (i % 100 == 0) {
+    if (i % 100 == 0)
+    {
       printf("Processing %i", i);
+    }
+    // Setup the geometry
+    edm::ESHandle<HGCalTopology> &handle_topo_HGCal = m_topo[cID.det()];
+
+    if (!handle_topo_HGCal.isValid())
+    {
+      printf("Error: Invalid HGCal topology. \n");
+      exit(EXIT_FAILURE);
     }
 
     // Setup the detector
     int detectorid = cID.det();
     // if detector not in map, initialize it;
-    if (m_DetId.find(detectorid) == m_DetId.end()) {
+    if (m_DetId.find(detectorid) == m_DetId.end())
+    {
       m_DetId[detectorid];
     }
     Det &detector = m_DetId[detectorid];
 
     //Setup the subdetector
     int subdetid = cID.subdetId();
-    if (detector.subdetectors.find(subdetid) == detector.subdetectors.end()) {
+    if (detector.subdetectors.find(subdetid) == detector.subdetectors.end())
+    {
       detector.subdetectors[subdetid];
     }
     Subdet &subdet = detector.subdetectors[subdetid];
 
     //Setup the layer
     int layerid = recHitTools.getLayer(cID);
-    if (subdet.layers.find(layerid) == subdet.layers.end()) {
+    if (subdet.layers.find(layerid) == subdet.layers.end())
+    {
       subdet.layers[layerid];
       subdet.layers[layerid].z = recHitTools.getPosition(cID).z();
     }
@@ -199,7 +232,8 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
     //Setup the Wafer
     std::pair<int, int> waferid = recHitTools.getWafer(cID);
-    if (layer.wafers.find(waferid) == layer.wafers.end()) {
+    if (layer.wafers.find(waferid) == layer.wafers.end())
+    {
       layer.wafers[waferid];
       // NA
       // layer.wafers[waferid].middle_x= recHitTools.getPosition(cID)[0];
@@ -215,18 +249,24 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     cell.Id = cID;
     cell.x = recHitTools.getPosition(cID).x();
     cell.y = recHitTools.getPosition(cID).y();
-    // cell.neighbors = handle_topo_HGCal->neighbors(cID);
+    cell.neighbors = handle_topo_HGCal->neighbors(cID);
 
-    myfile << "\tDet" << cID.det();
-    myfile << "\tSubdet" << subdetid;
-    myfile << "\tLayer" << layerid;
-    myfile << "\tWafer (" << waferid.first << "," << waferid.second<<")" ;
-    myfile << "\tCellID" << cell.Id.rawId();
-    myfile << "\tx" << cell.x;
-    myfile << "\ty" << cell.y;
+    myfile << "\tDet " << cID.det();
+    myfile << "\tSubdet " << subdetid;
+    myfile << "\tLayer " << layerid;
+    myfile << "\tWafer (" << waferid.first << "," << waferid.second << ")";
+    myfile << "\tCellID " << cell.Id.rawId();
+    myfile << "\tx " << cell.x;
+    myfile << "\ty " << cell.y;
+    myfile << "\tneighbors ";
+    for (auto elem : cell.neighbors)
+    {
+      myfile << elem.rawId() << ", ";
+    }
     myfile << "\n";
     n_printed++;
-    if (n_printed > 1000) {
+    if (n_printed > 1000)
+    {
       return;
     }
   }
