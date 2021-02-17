@@ -61,6 +61,7 @@
 // #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 // #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "EDAnalyzers/GeoExtractor/interface/TreeOutputInfo.h"
+#include "EDAnalyzers/GeoExtractor/interface/DetO.h"
 
 #include <Compression.h>
 #include <TH1F.h>
@@ -110,43 +111,7 @@ GeoExtractor::~GeoExtractor() { myfile.close(); }
 //
 // member functions
 //
-struct Cell
-{
-  float x;
-  float y;
-  DetId Id;
-  std::vector<DetId> neighbors;
-};
-struct Tile
-{
-  float middle_x;
-  float middle_y;
-  std::map<DetId, Cell> cells;
-};
 
-struct Wafer
-{
-  float middle_x;
-  float middle_y;
-  float si_thickness;
-  std::map<DetId, Cell> cells;
-};
-
-struct Layer
-{
-  float z;
-  std::map<std::pair<int, int>, Wafer> wafers;
-};
-
-struct Subdet
-{
-  std::map<int, Layer> layers;
-};
-
-struct Det
-{
-  std::map<int, Subdet> subdetectors;
-};
 
 // ------------ method called for each event  ------------
 void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup)
@@ -166,25 +131,43 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   //get all valid cells in the geometry, will be filtered later
   const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
 
+  printf("#All cell ids %i\n", (int)v_allCellIds.size());
   // Filter the Ids
   std::vector<DetId> v_detId;
+  int rejected_det = 0;
+  int rejected_pos = 0;
   for (int i = 0; i < (int)v_allCellIds.size(); i++)
   {
     // Skip IDs from other detector parts
     if (v_allCellIds[i].det() != DetId::HGCalEE && v_allCellIds[i].det() != DetId::HGCalHSi &&
         v_allCellIds[i].det() != DetId::HGCalHSc)
     {
+      rejected_det++;
       continue;
     }
     // Todo Position check
+    auto x = recHitTools.getPosition(v_allCellIds[i]).x();
+    if (x < -50 || x > 50)
+    {
+      rejected_pos++;
+      continue;
+    }
+
+    auto y = recHitTools.getPosition(v_allCellIds[i]).y();
+    if (y < -150 || y > -50)
+    {
+      rejected_pos++;
+      continue;
+    }
     // If all checks are pass, add the detId to the list of valid Ids.
     v_detId.push_back(v_allCellIds[i]);
   }
-
-  //Setup the map, that contains all the Structures
+  printf("Rejected by detector: %i\n", rejected_det);
+  printf("Rejected by position: %i\n", rejected_pos);
+  printf("Cells left: %i\n", (int)v_detId.size());
+  //Setup the map, that contains all the Classures
   //Det -> SubDet -> Layer -> Wafer -> Cell
-  //std::map<int, std::map<int, std::vector<DetId>>> m_DetId;
-  std::map<int, Det> m_DetId;
+  DetColl detcol;
 
   for (int i = 0; i < (int)v_detId.size(); i++)
   {
@@ -208,11 +191,11 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     // Setup the detector
     int detectorid = cID.det();
     // if detector not in map, initialize it;
-    if (m_DetId.find(detectorid) == m_DetId.end())
+    if (detcol.detectors.find(detectorid) == detcol.detectors.end())
     {
-      m_DetId[detectorid];
+      detcol.detectors[detectorid];
     }
-    Det &detector = m_DetId[detectorid];
+    Det &detector = detcol.detectors[detectorid];
 
     //Setup the subdetector
     int subdetid = cID.subdetId();
@@ -257,7 +240,6 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->subdetid.push_back(subdetid);
     treeOutput->layerid.push_back(layerid);
     treeOutput->waferid.push_back(waferid);
-    
 
     myfile << "\tDet " << cID.det();
     myfile << "\tSubdet " << subdetid;
