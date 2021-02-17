@@ -83,7 +83,7 @@ class Layer : public yamlwo
 {
 public:
   float z;
-  std::map<std::pair<unsigned int, unsigned int>, Wafer> wafers;
+  std::map<std::pair<int, int>, Wafer> wafers;
   // ~Layer() = 0;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
