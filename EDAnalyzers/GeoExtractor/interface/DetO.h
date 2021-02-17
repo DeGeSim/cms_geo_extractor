@@ -1,23 +1,29 @@
 #include <fstream>
 #include <string>
 
+std::string tabs(int n)
+{
+  return std::string(2*n, ' ');
+}
+
 class yamlwo
 {
 public:
-  void printmembers(std::ofstream outfile, int indentlevel);
-
-  void toyaml(std::ofstream outfile, int indentlevel = 0)
-  {
-    outfile << tabs(indentlevel) << "-{\n";
-    indentlevel++;
-    // print the members
-    printmembers(outfile, indentlevel);
-    // print the subsystem
-    printmap(outfile, indentlevel);
-    indentlevel--;
-    outfile << tabs(indentlevel) << "}\n";
-  }
+  virtual void printmembers(std::ofstream &outfile, int indentlevel) { return; };
+  virtual void printmap(std::ofstream &outfile, int indentlevel) { return; };
+  // virtual ~yamlwo();
+  void toyaml(std::ofstream &outfile, int indentlevel);
 };
+
+void yamlwo::toyaml(std::ofstream &outfile, int indentlevel = 0)
+{
+  // outfile << tabs(indentlevel) << "\n";
+  // print the members
+  printmembers(outfile, indentlevel);
+  // print the subsystem
+  printmap(outfile, indentlevel);
+  // outfile << tabs(indentlevel) << "\n";
+}
 
 class Cell : public yamlwo
 {
@@ -25,29 +31,28 @@ public:
   float x;
   float y;
   DetId Id;
+  // ~Cell() = 0;
   std::vector<DetId> neighbors;
-  void printmembers(std::ofstream outfile, int indentlevel)
+  void printmembers(std::ofstream &outfile, int indentlevel)
   {
-    outfile << tabs(indentlevel) << "x:" << (std::string)x << "\n";
-    outfile << tabs(indentlevel) << "y:" << (std::string)x << "\n";
-    outfile << tabs(indentlevel) << "Id:" << (std::string)Id.re << "\n";
+    outfile << tabs(indentlevel) << "x: " << x << "\n";
+    outfile << tabs(indentlevel) << "y: " << x << "\n";
+    // outfile << tabs(indentlevel) << "Id: " << Id.rawId() << "\n";
   }
-  void printmap(std::ofstream outfile, int indentlevel = 0)
+  void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
-    for (auto const &e : neighbors)
+    outfile << tabs(indentlevel) << "neighbors: [";
+    for (DetId const &e : neighbors)
     {
-      outfile << tabs(indentlevel) << "-" << e.rawId() << "\n";
+      outfile << e.rawId();
+      if (e != neighbors[neighbors.size()-1])
+      {
+        outfile << ", ";
+      }
     }
+    outfile << "]\n";
   }
 };
-// class Tile: public yamlwo
-// {
-// public:
-//   float middle_x;
-//   float middle_y;
-//   std::map<DetId, Cell> cells;
-
-// };
 
 class Wafer : public yamlwo
 {
@@ -56,18 +61,20 @@ public:
   float middle_y;
   float si_thickness;
   std::map<DetId, Cell> cells;
-  void printmembers(std::ofstream outfile, int indentlevel)
+  // ~Wafer() = 0;
+  void printmembers(std::ofstream &outfile, int indentlevel)
   {
-    outfile << tabs(indentlevel) << "middle_x:" << (std::string)middle_x << "\n";
-    outfile << tabs(indentlevel) << "middle_y:" << (std::string)middle_y << "\n";
-    outfile << tabs(indentlevel) << "si_thickness:" << (std::string)si_thickness << "\n";
+    outfile << " middle_x: " << middle_x << "\n";
+    // outfile << tabs(indentlevel) << "middle_x: " << middle_x << "\n";
+    outfile << tabs(indentlevel) << "middle_y: " << middle_y << "\n";
+    outfile << tabs(indentlevel) << "si_thickness: " << si_thickness << "\n";
   }
-  void printmap(std::ofstream outfile, int indentlevel = 0)
+  void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
-    for (auto const &[key, val] : cells)
+    for (auto &[key, val] : cells)
     {
-      outfile << tabs(indentlevel) << "(" << key.first << "," << key.second << ") :\n";
-      val.toyaml(outfile, indentlevel);
+      outfile << tabs(indentlevel) << key.rawId() << ":\n";
+      val.toyaml(outfile, indentlevel+1);
     }
   }
 };
@@ -76,29 +83,45 @@ class Layer : public yamlwo
 {
 public:
   float z;
-  std::map<std::pair<int, int>, Wafer> wafers;
-  void printmembers(std::ofstream outfile, int indentlevel)
+  std::map<std::pair<unsigned int, unsigned int>, Wafer> wafers;
+  // ~Layer() = 0;
+  void printmembers(std::ofstream &outfile, int indentlevel)
   {
-    outfile << tabs(indentlevel) << "z:" << (std::string)z << "\n";
+    outfile << tabs(indentlevel) << "z: " << z << "\n";
   }
-  void printmap(std::ofstream outfile, int indentlevel = 0)
+  void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
-    for (auto const &[key, val] : map)
+    for (auto &[key, val] : wafers)
     {
-      outfile << tabs(indentlevel) << (std::string)key << ":\n";
-      val.toyaml(outfile, indentlevel);
+
+      // outfile << tabs(indentlevel) << ": " << "\n";
+      // outfile << tabs(indentlevel) << key.first+key.second << ":\n";
+      // outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
+      outfile << tabs(indentlevel) << "? !!python/tuple\n";
+      outfile << tabs(indentlevel) << "- " << key.first << "\n";
+      outfile << tabs(indentlevel) << "- " << key.second << "\n";
+      outfile << tabs(indentlevel) << ":";
+      val.toyaml(outfile, indentlevel+1);
     }
   }
-
 };
 
 class Subdet : public yamlwo
 {
 public:
   std::map<int, Layer> layers;
-  void printmembers(std::ofstream outfile, int indentlevel)
+  // ~Subdet() = 0;
+  void printmembers(std::ofstream &outfile, int indentlevel)
   {
     return;
+  }
+  void printmap(std::ofstream &outfile, int indentlevel)
+  {
+    for (auto &[key, val] : layers)
+    {
+      outfile << tabs(indentlevel) << key << ":\n";
+      val.toyaml(outfile, indentlevel+1);
+    }
   }
 };
 
@@ -106,9 +129,18 @@ class Det : public yamlwo
 {
 public:
   std::map<int, Subdet> subdetectors;
-  void printmembers(std::ofstream outfile, int indentlevel)
+  // ~Det() = 0;
+  void printmembers(std::ofstream &outfile, int indentlevel)
   {
     return;
+  }
+  void printmap(std::ofstream &outfile, int indentlevel)
+  {
+    for (auto &[key, val] : subdetectors)
+    {
+      outfile << tabs(indentlevel) << key << ":\n";
+      val.toyaml(outfile, indentlevel+1);
+    }
   }
 };
 
@@ -116,13 +148,17 @@ class DetColl : public yamlwo
 {
 public:
   std::map<int, Det> detectors;
-  void printmembers(std::ofstream outfile, int indentlevel)
+  // ~DetColl() = 0;
+  void printmembers(std::ofstream &outfile, int indentlevel)
   {
     return;
   }
+  void printmap(std::ofstream &outfile, int indentlevel)
+  {
+    for (auto &[key, val] : detectors)
+    {
+      outfile << tabs(indentlevel) << key << ":\n";
+      val.toyaml(outfile, indentlevel+1);
+    }
+  }
 };
-
-std::string tabs(int n)
-{
-  return std::string(n, '\t');
-}

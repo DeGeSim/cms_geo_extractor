@@ -97,11 +97,14 @@ private:
   std::ofstream myfile;
   edm::Service<TFileService> fs;
   TreeOutputInfo::TreeOutput *treeOutput;
+  //Setup the map, that contains all the Classures
+  //Det -> SubDet -> Layer -> Wafer -> Cell
+  DetColl detcol;
 };
 
 GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
 {
-  myfile.open("output.txt");
+  myfile.open("geometry.yaml");
   myfile.clear();
   usesResource("TFileService");
   treeOutput = new TreeOutputInfo::TreeOutput("tree", fs);
@@ -165,9 +168,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   printf("Rejected by detector: %i\n", rejected_det);
   printf("Rejected by position: %i\n", rejected_pos);
   printf("Cells left: %i\n", (int)v_detId.size());
-  //Setup the map, that contains all the Classures
-  //Det -> SubDet -> Layer -> Wafer -> Cell
-  DetColl detcol;
+
 
   for (int i = 0; i < (int)v_detId.size(); i++)
   {
@@ -177,7 +178,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     // Logmessage
     if (i % 100 == 0)
     {
-      printf("Processing %i", i);
+      printf("Processing %i\n", i);
     }
     // Setup the geometry
     edm::ESHandle<HGCalTopology> &handle_topo_HGCal = m_topo[cID.det()];
@@ -241,23 +242,25 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->layerid.push_back(layerid);
     treeOutput->waferid.push_back(waferid);
 
-    myfile << "\tDet " << cID.det();
-    myfile << "\tSubdet " << subdetid;
-    myfile << "\tLayer " << layerid;
-    myfile << "\tWafer (" << waferid.first << "," << waferid.second << ")";
-    myfile << "\tCellID " << cell.Id.rawId();
-    myfile << "\tx " << cell.x;
-    myfile << "\ty " << cell.y;
-    myfile << "\tneighbors ";
-    for (DetId elem : cell.neighbors)
-    {
-      myfile << elem.rawId() << ", ";
-    }
-    myfile << "\n";
+    // myfile << "\tDet " << cID.det();
+    // myfile << "\tSubdet " << subdetid;
+    // myfile << "\tLayer " << layerid;
+    // myfile << "\tWafer (" << waferid.first << "," << waferid.second << ")";
+    // myfile << "\tCellID " << cell.Id.rawId();
+    // myfile << "\tx " << cell.x;
+    // myfile << "\ty " << cell.y;
+    // myfile << "\tneighbors ";
+    // for (DetId elem : cell.neighbors)
+    // {
+    //   myfile << elem.rawId() << ", ";
+    // }
+    // myfile << "\n";
     n_printed++;
     if (n_printed > 1000)
     {
+      detcol.toyaml(myfile, 0);
       treeOutput->fill();
+
       return;
     }
   }
