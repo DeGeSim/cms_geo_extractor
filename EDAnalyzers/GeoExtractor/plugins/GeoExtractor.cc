@@ -115,7 +115,6 @@ GeoExtractor::~GeoExtractor() { myfile.close(); }
 // member functions
 //
 
-
 // ------------ method called for each event  ------------
 void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup)
 {
@@ -168,7 +167,6 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   printf("Rejected by detector: %i\n", rejected_det);
   printf("Rejected by position: %i\n", rejected_pos);
   printf("Cells left: %i\n", (int)v_detId.size());
-
 
   for (int i = 0; i < (int)v_detId.size(); i++)
   {
@@ -234,6 +232,23 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     cell.Id = cID;
     cell.x = recHitTools.getPosition(cID).x();
     cell.y = recHitTools.getPosition(cID).y();
+    if (handle_topo_HGCal->up(cID).size() > 0)
+    {
+      cell.next = handle_topo_HGCal->up(cID).back();
+    }
+    else
+    {
+      cell.previous = DetId(0);
+    }
+
+    if (handle_topo_HGCal->down(cID).size() > 0)
+    {
+      cell.previous = handle_topo_HGCal->down(cID).back();
+    }
+    else
+    {
+      cell.previous = DetId(0);
+    }
     cell.neighbors = handle_topo_HGCal->neighbors(cID);
 
     treeOutput->cellid.push_back(cell.Id);

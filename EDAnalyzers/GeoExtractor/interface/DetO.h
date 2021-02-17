@@ -17,12 +17,10 @@ public:
 
 void yamlwo::toyaml(std::ofstream &outfile, int indentlevel = 0)
 {
-  // outfile << tabs(indentlevel) << "\n";
   // print the members
   printmembers(outfile, indentlevel);
   // print the subsystem
   printmap(outfile, indentlevel);
-  // outfile << tabs(indentlevel) << "\n";
 }
 
 class Cell : public yamlwo
@@ -31,13 +29,15 @@ public:
   float x;
   float y;
   DetId Id;
-  // ~Cell() = 0;
+  DetId next;
+  DetId previous;
   std::vector<DetId> neighbors;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     outfile << tabs(indentlevel) << "x: " << x << "\n";
     outfile << tabs(indentlevel) << "y: " << x << "\n";
-    // outfile << tabs(indentlevel) << "Id: " << Id.rawId() << "\n";
+    outfile << tabs(indentlevel) <<  tabs(next) << "next: " << next.rawId() << "\n";
+    outfile << tabs(indentlevel) <<  tabs(previous) << "previous: " << previous.rawId() << "\n";
   }
   void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
@@ -61,11 +61,9 @@ public:
   float middle_y;
   float si_thickness;
   std::map<DetId, Cell> cells;
-  // ~Wafer() = 0;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     outfile << " middle_x: " << middle_x << "\n";
-    // outfile << tabs(indentlevel) << "middle_x: " << middle_x << "\n";
     outfile << tabs(indentlevel) << "middle_y: " << middle_y << "\n";
     outfile << tabs(indentlevel) << "si_thickness: " << si_thickness << "\n";
   }
@@ -84,7 +82,6 @@ class Layer : public yamlwo
 public:
   float z;
   std::map<std::pair<int, int>, Wafer> wafers;
-  // ~Layer() = 0;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     outfile << tabs(indentlevel) << "z: " << z << "\n";
@@ -93,10 +90,6 @@ public:
   {
     for (auto &[key, val] : wafers)
     {
-
-      // outfile << tabs(indentlevel) << ": " << "\n";
-      // outfile << tabs(indentlevel) << key.first+key.second << ":\n";
-      // outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
       outfile << tabs(indentlevel) << "? !!python/tuple\n";
       outfile << tabs(indentlevel) << "- " << key.first << "\n";
       outfile << tabs(indentlevel) << "- " << key.second << "\n";
@@ -110,7 +103,6 @@ class Subdet : public yamlwo
 {
 public:
   std::map<int, Layer> layers;
-  // ~Subdet() = 0;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     return;
@@ -129,7 +121,6 @@ class Det : public yamlwo
 {
 public:
   std::map<int, Subdet> subdetectors;
-  // ~Det() = 0;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     return;
@@ -148,7 +139,6 @@ class DetColl : public yamlwo
 {
 public:
   std::map<int, Det> detectors;
-  // ~DetColl() = 0;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     return;
