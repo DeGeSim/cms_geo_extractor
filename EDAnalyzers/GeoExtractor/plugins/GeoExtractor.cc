@@ -50,6 +50,7 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "Geometry/CaloTopology/interface/HGCalTopology.h"
+
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/Records/interface/HGCalGeometryRecord.h"
@@ -97,6 +98,7 @@ private:
   std::ofstream myfile;
   edm::Service<TFileService> fs;
   TreeOutputInfo::TreeOutput *treeOutput;
+  std::map<int, edm::ESHandle<HGCalTopology> > m_topo;
   //Setup the map, that contains all the Classures
   //Det -> SubDet -> Layer -> Wafer -> Cell
   DetColl detcol;
@@ -108,8 +110,15 @@ GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
   myfile.clear();
   usesResource("TFileService");
   treeOutput = new TreeOutputInfo::TreeOutput("tree", fs);
+  m_topo[DetId::HGCalEE];
+  m_topo[DetId::HGCalHSi];
+  m_topo[DetId::HGCalHSc];
+
 }
-GeoExtractor::~GeoExtractor() { myfile.close(); }
+GeoExtractor::~GeoExtractor() { 
+  treeOutput->fill();
+  detcol.toyaml(myfile, 0);
+  myfile.close(); }
 
 //
 // member functions
@@ -121,12 +130,8 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   iSetup.get<CaloGeometryRecord>().get(geom);
   recHitTools.setGeometry(*(geom.product()));
 
-  std::map<int, edm::ESHandle<HGCalTopology> > m_topo;
-  m_topo[DetId::HGCalEE];
   iSetup.get<IdealGeometryRecord>().get("HGCalEESensitive", m_topo[DetId::HGCalEE]);
-  m_topo[DetId::HGCalHSi];
   iSetup.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive", m_topo[DetId::HGCalHSi]);
-  m_topo[DetId::HGCalHSc];
   iSetup.get<IdealGeometryRecord>().get("HGCalHEScintillatorSensitive", m_topo[DetId::HGCalHSc]);
 
   int n_printed = 0;
@@ -148,6 +153,12 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
       continue;
     }
     // Todo Position check
+    auto z = recHitTools.getPosition(v_allCellIds[i]).z();
+    if (z > 0)
+    {
+      rejected_pos++;
+      continue;
+    }
     auto x = recHitTools.getPosition(v_allCellIds[i]).x();
     if (x < -50 || x > 50)
     {
@@ -205,7 +216,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     Subdet &subdet = detector.subdetectors[subdetid];
 
     //Setup the layer
-    int layerid = recHitTools.getLayer(cID);
+    unsigned int layerid = recHitTools.getLayer(cID);
     if (subdet.layers.find(layerid) == subdet.layers.end())
     {
       subdet.layers[layerid];
@@ -226,60 +237,74 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     Wafer &wafer = layer.wafers[waferid];
 
     //Setup the Cell
-    wafer.cells[cID];
-    Cell &cell = wafer.cells[cID];
+    std::pair<int, int> cellid = recHitTools.getCell(cID);
+    wafer.cells[cellid];
+    Cell &cell = wafer.cells[cellid];
 
-    cell.Id = cID;
+    cell.globalid = cID;
     cell.x = recHitTools.getPosition(cID).x();
     cell.y = recHitTools.getPosition(cID).y();
-    if (handle_topo_HGCal->up(cID).size() > 0)
-    {
-      cell.next = handle_topo_HGCal->up(cID).back();
-    }
-    else
-    {
-      cell.previous = DetId(0);
-    }
+    // cell.next = handle_topo_HGCal->changeZ(cID,1);
+    // cell.previous = handle_topo_HGCal->changeZ(cID,-1);
+    // cell.east = handle_topo_HGCal->goEast(cID);
+    // cell.north = handle_topo_HGCal->goNorth(cID);
+    // cell.south = handle_topo_HGCal->goSouth(cID);
+    // cell.west = handle_topo_HGCal->goWest(cID);
 
-    if (handle_topo_HGCal->down(cID).size() > 0)
-    {
-      cell.previous = handle_topo_HGCal->down(cID).back();
-    }
-    else
-    {
-      cell.previous = DetId(0);
-    }
+    // if (handle_topo_HGCal->up(cID).size() > 0)
+    // {
+    //   cell.next = handle_topo_HGCal->up(cID).back();
+    // }
+    // else
+    // {
+    //   cell.previous = DetId(0);
+    // }
+
+    // if (handle_topo_HGCal->down(cID).size() > 0)
+    // {
+    //   cell.previous = handle_topo_HGCal->down(cID).back();
+    // }
+    // else
+    // {
+    //   cell.previous = DetId(0);
+    // }
     cell.neighbors = handle_topo_HGCal->neighbors(cID);
 
-    treeOutput->cellid.push_back(cell.Id);
+    treeOutput->globalid.push_back(cell.globalid.rawId());
     treeOutput->detectorid.push_back(detectorid);
     treeOutput->subdetid.push_back(subdetid);
     treeOutput->layerid.push_back(layerid);
     treeOutput->waferid.push_back(waferid);
+    treeOutput->cellid.push_back(cellid);
 
-    // myfile << "\tDet " << cID.det();
-    // myfile << "\tSubdet " << subdetid;
-    // myfile << "\tLayer " << layerid;
-    // myfile << "\tWafer (" << waferid.first << "," << waferid.second << ")";
-    // myfile << "\tCellID " << cell.Id.rawId();
-    // myfile << "\tx " << cell.x;
-    // myfile << "\ty " << cell.y;
-    // myfile << "\tneighbors ";
-    // for (DetId elem : cell.neighbors)
-    // {
-    //   myfile << elem.rawId() << ", ";
-    // }
-    // myfile << "\n";
     n_printed++;
-    if (n_printed > 1000)
-    {
-      detcol.toyaml(myfile, 0);
-      treeOutput->fill();
-
-      return;
-    }
+    // if (n_printed > 1000) { return;}
   }
+
 }
+
+// DetId GeoExtractor::findNextCell(DetId cellId, edm::ESHandle<HGCalTopology> &handle_topo_HGCal){
+//   std::vector<DetId> path;
+//   float x = recHitTools.getPosition(cellId).x();
+//   float y = recHitTools.getPosition(cellId).y();
+//   int detectorid = cellId.det();
+//   int subdetid = cellId.subdetId();
+//   int layerid = recHitTools.getLayer(cellId);
+//   std::pair<int,int> wafer= recHitTools.getWafer();
+//   std::pair<int,int> cell= recHitTools.getCell();
+
+//   DetId startcell;
+
+//   if (is last layer in the ce-e ){
+//     if (det() == DetId::HGCalEE)
+//     {
+//       /* code */
+//     }
+//     det number = 
+//   }
+// }
+
+
 
 // ------------ method called once each job just before starting event loop  ------------
 void GeoExtractor::beginJob() {}
@@ -289,24 +314,3 @@ void GeoExtractor::endJob() {}
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(GeoExtractor);
-
-// for (int i = 0; i < (int)v_detId.size(); i++) {
-
-//     // Skip IDs from other detector parts
-//     if (v_detId[i].det() < 8) {
-//       continue;
-//     }
-//     // Logmessage
-//     if (i%100 == 0 ) {
-//       printf("Processing %i", i);
-//     }
-//     DetId curId = v_detId[i];
-//     myfile << i << ": Id: " << curId.det();
-//     myfile << "\tSubdetector " << curId.subdetId();
-//     myfile << "\tPosition" << recHitTools.getPosition(curId);
-//     myfile << "\tWafer Id" << recHitTools.getWafer(curId).first << "," << recHitTools.getWafer(curId).second << "\n";
-//     n_printed++;
-//     if (n_printed > 1000) {
-//       return;
-//     }
-//   }

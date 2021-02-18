@@ -23,12 +23,12 @@ namespace TreeOutputInfo
   public:
     TTree *tree;
 
-    // Gen electron //
-    std::vector<unsigned int> cellid;
+    std::vector<unsigned int> globalid;
     std::vector<unsigned int> detectorid;
     std::vector<unsigned int> subdetid;
     std::vector<unsigned int> layerid;
-    std::vector<std::pair<int, int> > waferid;
+    std::vector<std::pair<int, int>> waferid;
+    std::vector<std::pair<int, int>> cellid;
 
     TreeOutput(std::string details, edm::Service<TFileService> fs)
     {

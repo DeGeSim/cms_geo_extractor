@@ -28,16 +28,22 @@ class Cell : public yamlwo
 public:
   float x;
   float y;
-  DetId Id;
+  DetId globalid;
   DetId next;
   DetId previous;
+  DetId north, south, west, east;
   std::vector<DetId> neighbors;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
-    outfile << tabs(indentlevel) << "x: " << x << "\n";
+    outfile << "x: " << x << "\n";
+    // outfile << tabs(indentlevel) << "x: " << x << "\n";
     outfile << tabs(indentlevel) << "y: " << x << "\n";
-    outfile << tabs(indentlevel) <<  tabs(next) << "next: " << next.rawId() << "\n";
-    outfile << tabs(indentlevel) <<  tabs(previous) << "previous: " << previous.rawId() << "\n";
+    // outfile << tabs(indentlevel) <<  "next: " << next.rawId() << "\n";
+    // outfile << tabs(indentlevel) <<  "previous: " << previous.rawId() << "\n";
+    // outfile << tabs(indentlevel) <<  "north: " << north.rawId() << "\n";
+    // outfile << tabs(indentlevel) <<  "south: " << south.rawId() << "\n";
+    // outfile << tabs(indentlevel) <<  "west: " << west.rawId() << "\n";
+    // outfile << tabs(indentlevel) <<  "east: " << east.rawId() << "\n";
   }
   void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
@@ -59,11 +65,11 @@ class Wafer : public yamlwo
 public:
   float middle_x;
   float middle_y;
-  float si_thickness;
-  std::map<DetId, Cell> cells;
+  int si_thickness;
+  std::map<std::pair< int, int >, Cell> cells;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
-    outfile << " middle_x: " << middle_x << "\n";
+    outfile << "middle_x: " << middle_x << "\n";
     outfile << tabs(indentlevel) << "middle_y: " << middle_y << "\n";
     outfile << tabs(indentlevel) << "si_thickness: " << si_thickness << "\n";
   }
@@ -71,7 +77,11 @@ public:
   {
     for (auto &[key, val] : cells)
     {
-      outfile << tabs(indentlevel) << key.rawId() << ":\n";
+      // outfile << tabs(indentlevel) << key.rawId() << ":\n";
+      outfile << tabs(indentlevel) << "? !!python/tuple\n";
+      outfile << tabs(indentlevel) << "- " << key.first << "\n";
+      outfile << tabs(indentlevel) << "- " << key.second << "\n";
+      outfile << tabs(indentlevel) << ": ";
       val.toyaml(outfile, indentlevel+1);
     }
   }
@@ -93,7 +103,7 @@ public:
       outfile << tabs(indentlevel) << "? !!python/tuple\n";
       outfile << tabs(indentlevel) << "- " << key.first << "\n";
       outfile << tabs(indentlevel) << "- " << key.second << "\n";
-      outfile << tabs(indentlevel) << ":";
+      outfile << tabs(indentlevel) << ": ";
       val.toyaml(outfile, indentlevel+1);
     }
   }
