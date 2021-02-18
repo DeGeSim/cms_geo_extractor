@@ -104,7 +104,7 @@ private:
 
 GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
 {
-  myfile.open("geometry.yaml");
+  myfile.open("output/geometry.yaml");
   myfile.clear();
   usesResource("TFileService");
   treeOutput = new TreeOutputInfo::TreeOutput("tree", fs);

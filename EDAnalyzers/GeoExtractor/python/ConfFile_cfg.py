@@ -45,7 +45,7 @@ process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(1))
 #     fileNames=inputFileNames
 # )
 process.source = cms.Source("EmptySource")
-process.TFileService = cms.Service("TFileService", fileName=cms.string("DetIdLUT.root"))
+process.TFileService = cms.Service("TFileService", fileName=cms.string("output/DetIdLUT.root"))
 
 process.analyzer =cms.EDAnalyzer("GeoExtractor")
 process.p = cms.Path(process.analyzer)
