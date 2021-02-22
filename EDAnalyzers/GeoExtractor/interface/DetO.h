@@ -38,7 +38,7 @@ public:
     outfile << "x: " << x << "\n";
     // outfile << tabs(indentlevel) << "x: " << x << "\n";
     outfile << tabs(indentlevel) << "y: " << x << "\n";
-    // outfile << tabs(indentlevel) <<  "next: " << next.rawId() << "\n";
+    outfile << tabs(indentlevel) <<  "next: " << next.rawId() << "\n";
     // outfile << tabs(indentlevel) <<  "previous: " << previous.rawId() << "\n";
     // outfile << tabs(indentlevel) <<  "north: " << north.rawId() << "\n";
     // outfile << tabs(indentlevel) <<  "south: " << south.rawId() << "\n";
@@ -78,9 +78,7 @@ public:
     for (auto &[key, val] : cells)
     {
       // outfile << tabs(indentlevel) << key.rawId() << ":\n";
-      outfile << tabs(indentlevel) << "? !!python/tuple\n";
-      outfile << tabs(indentlevel) << "- " << key.first << "\n";
-      outfile << tabs(indentlevel) << "- " << key.second << "\n";
+      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", "<< key.second << "]\n";
       outfile << tabs(indentlevel) << ": ";
       val.toyaml(outfile, indentlevel+1);
     }
@@ -100,9 +98,10 @@ public:
   {
     for (auto &[key, val] : wafers)
     {
-      outfile << tabs(indentlevel) << "? !!python/tuple\n";
-      outfile << tabs(indentlevel) << "- " << key.first << "\n";
-      outfile << tabs(indentlevel) << "- " << key.second << "\n";
+      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", "<< key.second << "]\n";
+      // outfile << tabs(indentlevel) << "? !!python/tuple\n";
+      // outfile << tabs(indentlevel) << "- " << key.first << "\n";
+      // outfile << tabs(indentlevel) << "- " << key.second << "\n";
       outfile << tabs(indentlevel) << ": ";
       val.toyaml(outfile, indentlevel+1);
     }
