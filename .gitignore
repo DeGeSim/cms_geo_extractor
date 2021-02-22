@@ -8,3 +8,5 @@ __init__.py
 .env
 .vscode/
 workspace.code-workspace
+venv
+output
