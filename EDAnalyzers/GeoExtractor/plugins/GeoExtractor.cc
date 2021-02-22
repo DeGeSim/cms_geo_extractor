@@ -95,43 +95,57 @@ private:
   virtual void analyze(const edm::Event &, const edm::EventSetup &) override;
   virtual void endJob() override;
 
+  //Tools
   edm::ESHandle<CaloGeometry> geom;
   hgcal::RecHitTools recHitTools;
 
+  // container for the topologyies
+  std::map<int, edm::ESHandle<HGCalTopology>> m_topo;
+
+  //// IO
   // file to write the yaml structured detector information out
   std::ofstream myfile;
   edm::Service<TFileService> fs;
   // output tree
   TreeOutputInfo::TreeOutput *treeOutput;
-  // container for the topologyies
-  std::map<int, edm::ESHandle<HGCalTopology> > m_topo;
+
+  std::vector<DetId> filterCellIds(const std::vector<DetId> v_allCellIds);
+  //Stuff or seaching the members
+
+  void assignZneighbors(std::vector<DetId> &v_validHGCalIds);
+  std::pair<DetId, float> findCellCloseToXYpos(DetId cellId, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
+  DetId getcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
+  DetId findNextCell(DetId cellId);
+  std::string printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
 
   //The map, that contains the detector structure
   //Det -> SubDet -> Layer -> Wafer -> Cell
   DetColl detcol;
 
-  //Stuff or seaching the members
+  //vector with the numbers of the detector part of the hgcal
+  std::vector<int> v_HGCalDets;
 
-  void assignZneighbors(std::vector<DetId> &v_validHGCalIds);
-  std::pair<DetId,float> findCellCloseToXYpos(DetId cellId, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
-  DetId getcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
-  DetId findNextCell(DetId cellId);
-  std::string printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
+  //map that saves which cell are rejected in which step
+  std::map<int, std::map<std::string, int> > m_rej;
 };
 
 GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
 {
-  myfile.open("output/geometry.yaml");
-  myfile.clear();
   usesResource("TFileService");
   treeOutput = new TreeOutputInfo::TreeOutput("tree", fs);
   m_topo[DetId::HGCalEE];
   m_topo[DetId::HGCalHSi];
   m_topo[DetId::HGCalHSc];
+
+  v_HGCalDets.push_back(DetId::HGCalEE);
+  v_HGCalDets.push_back(DetId::HGCalHSi);
+  v_HGCalDets.push_back(DetId::HGCalHSc);
 }
 GeoExtractor::~GeoExtractor()
 {
   treeOutput->fill();
+  myfile.open("output/geometry.yaml");
+  myfile.clear();
   detcol.toyaml(myfile, 0);
   myfile.close();
 }
@@ -139,6 +153,69 @@ GeoExtractor::~GeoExtractor()
 //
 // member functions
 //
+
+std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCellIds)
+{
+  std::vector<DetId> v_validHGCalIds;
+  printf("#All cell ids %i\n", (int)v_allCellIds.size());
+  for (auto detectorid : v_HGCalDets)
+  {
+    m_rej[detectorid];
+    m_rej[detectorid]["det"] = 0;
+    m_rej[detectorid]["x"] = 0;
+    m_rej[detectorid]["y"] = 0;
+    m_rej[detectorid]["z"] = 0;
+  }
+  for (int i = 0; i < (int)v_allCellIds.size(); i++)
+  {
+    auto detectorid = v_allCellIds[i].det();
+    // Skip IDs from other detector parts
+    if (detectorid != DetId::HGCalEE && detectorid != DetId::HGCalHSi &&
+        detectorid != DetId::HGCalHSc)
+    {
+      continue;
+    }
+    m_rej[detectorid]["det"]++;
+    // Todo Position check
+
+    auto x = recHitTools.getPosition(v_allCellIds[i]).x();
+    if (x < -50 || x > 50)
+    {
+      continue;
+    }
+    m_rej[detectorid]["x"]++;
+
+    auto y = recHitTools.getPosition(v_allCellIds[i]).y();
+    if (y < -150 || y > -50)
+    {
+      continue;
+    }
+    m_rej[detectorid]["y"]++;
+
+    auto z = recHitTools.getPosition(v_allCellIds[i]).z();
+    if (z < 0)
+    {
+      continue;
+    }
+    m_rej[detectorid]["z"]++;
+    // If all checks are pass, add the detId to the list of valid Ids.
+    v_validHGCalIds.push_back(v_allCellIds[i]);
+  }
+  std::cout << "\tdet \t";
+  std::cout << "x \t";
+  std::cout << "y \t";
+  std::cout << "z \n";
+  for (auto detectorid : v_HGCalDets)
+  {
+    std::cout << detectorid << "\t";
+    std::cout << m_rej[detectorid]["det"] << "\t";
+    std::cout << m_rej[detectorid]["x"] << "\t";
+    std::cout << m_rej[detectorid]["y"] << "\t";
+    std::cout << m_rej[detectorid]["z"] << "\n";
+  }
+  printf("Cells left: %i\n", (int)v_validHGCalIds.size());
+  return v_validHGCalIds;
+}
 
 // ------------ method called for each event  ------------
 void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup)
@@ -154,57 +231,19 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   //get all valid cells in the geometry, will be filtered later
   const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
 
-  printf("#All cell ids %i\n", (int)v_allCellIds.size());
   // Filter the Ids
+  //vector to save the ids
   std::vector<DetId> v_validHGCalIds;
-  int rejected_det = 0;
-  int rejected_pos = 0;
-  for (int i = 0; i < (int)v_allCellIds.size(); i++)
-  {
-    // Skip IDs from other detector parts
-    if (v_allCellIds[i].det() != DetId::HGCalEE && v_allCellIds[i].det() != DetId::HGCalHSi &&
-        v_allCellIds[i].det() != DetId::HGCalHSc)
-    {
-      rejected_det++;
-      continue;
-    }
-    // Todo Position check
-    auto z = recHitTools.getPosition(v_allCellIds[i]).z();
-    if (z > 0)
-    {
-      rejected_pos++;
-      continue;
-    }
-    auto x = recHitTools.getPosition(v_allCellIds[i]).x();
-    if (x < -50 || x > 50)
-    {
-      rejected_pos++;
-      continue;
-    }
-
-    auto y = recHitTools.getPosition(v_allCellIds[i]).y();
-    if (y < -150 || y > -50)
-    {
-      rejected_pos++;
-      continue;
-    }
-    // If all checks are pass, add the detId to the list of valid Ids.
-    v_validHGCalIds.push_back(v_allCellIds[i]);
-  }
-  printf("Rejected by detector: %i\n", rejected_det);
-  printf("Rejected by position: %i\n", rejected_pos);
-  printf("Cells left: %i\n", (int)v_validHGCalIds.size());
+  v_validHGCalIds = filterCellIds(v_allCellIds);
 
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     DetId cID = v_validHGCalIds[i];
-    // check angle, forward
-
     // Logmessage
-    if (i % 1000 == 0)
-    {
-      printf("Processing %i\n", i);
-    }
+    // if (i % 1000 == 0)
+    // {
+    //   printf("Processing %i\n", i);
+    // }
     // Setup the geometry
     edm::ESHandle<HGCalTopology> &handle_topo_HGCal = m_topo[cID.det()];
 
@@ -257,6 +296,15 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     wafer.cells[cellid];
     Cell &cell = wafer.cells[cellid];
 
+    if (detectorid != 10)
+    {
+      continue;
+    }
+    else
+    {
+      std::cout << "Adding cell:" << printcell(detectorid, subdetid, layerid, waferid, cellid)<<"\n";
+    }
+
     cell.globalid = cID;
     cell.x = recHitTools.getPosition(cID).x();
     cell.y = recHitTools.getPosition(cID).y();
@@ -271,15 +319,11 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->cellid.push_back(cellid);
 
     n_printed++;
-    // if (n_printed > 1000)
-    // {
-    //   return;
-    // }
   }
   assignZneighbors(v_validHGCalIds);
 }
 
-// wraps findNextCell and loops over the ids 
+// wraps findNextCell and loops over the ids
 void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
 {
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
@@ -331,7 +375,6 @@ DetId GeoExtractor::findNextCell(DetId cellId)
   // HGCalHSc = 10, layer 9-22
   // HGCalTrigger = 11 X
 
-
   // For the ee cal we can easily move forward
   if (detectorid == DetId::HGCalEE)
   {
@@ -351,11 +394,12 @@ DetId GeoExtractor::findNextCell(DetId cellId)
   {
     // for layer <8 all cells we can just search in the Si part
     if (layerid < 8 && detectorid == DetId::HGCalHSi)
-    { 
+    {
       // printf("C");
       return findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, layerid + 1).first;
     }
-    else if (layerid==22){
+    else if (layerid == 22)
+    {
       return DetId(0);
     }
     else
@@ -373,18 +417,18 @@ DetId GeoExtractor::findNextCell(DetId cellId)
       }
     }
   }
-  printf("Det %i, Subdet %i, Layer %i",detectorid, subdetid, layerid);
+  printf("Det %i, Subdet %i, Layer %i", detectorid, subdetid, layerid);
   throw std::invalid_argument("Wont find neighbor. This part should never be reached.\n");
   return DetId(0);
 }
 
-// This is the function that does the acutal search. 
+// This is the function that does the acutal search.
 // the coordinates give the layer, that is to be searched
-std::pair<DetId,float> GeoExtractor::findCellCloseToXYpos(
-  DetId cellId,
-  unsigned int detectorid,
-  unsigned int subdetid,
-  unsigned int layerid)
+std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
+    DetId cellId,
+    unsigned int detectorid,
+    unsigned int subdetid,
+    unsigned int layerid)
 {
   // Get the topo of the detector
   edm::ESHandle<HGCalTopology> &handle_topo_HGCal = m_topo[detectorid];
@@ -401,7 +445,6 @@ std::pair<DetId,float> GeoExtractor::findCellCloseToXYpos(
   // printf("3\n");
   // printf("closest_cell %u, det %u, subdet %u\n", closest_cell.rawId(),closest_cell.det(), closest_cell.subdetId());
   // printf("layer %u\n", recHitTools.getLayer(closest_cell));
-  
 
   float x_cur = recHitTools.getPosition(closest_cell).x();
   float y_cur = recHitTools.getPosition(closest_cell).y();
@@ -429,8 +472,6 @@ std::pair<DetId,float> GeoExtractor::findCellCloseToXYpos(
   }
   return std::make_pair(closest_cell, d_cur);
 }
-
-
 
 DetId GeoExtractor::getcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferid, std::pair<int, int> cellid)
 {
@@ -478,8 +519,6 @@ std::string GeoExtractor::printcell(unsigned int detectorid, unsigned int subdet
 
   return copyOfStr;
 }
-
-
 
 // ------------ method called once each job just before starting event loop  ------------
 void GeoExtractor::beginJob() {}
