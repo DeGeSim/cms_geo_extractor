@@ -26,24 +26,23 @@ void yamlwo::toyaml(std::ofstream &outfile, int indentlevel = 0)
 class Cell : public yamlwo
 {
 public:
+  bool issilicon;
+  int type;
   float x;
   float y;
   DetId globalid;
   DetId next;
   DetId previous;
-  DetId north, south, west, east;
   std::vector<DetId> neighbors;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
-    outfile << "x: " << x << "\n";
-    // outfile << tabs(indentlevel) << "x: " << x << "\n";
+    outfile << "issilicon: " << issilicon << "\n";
+    if (issilicon) {
+      outfile << tabs(indentlevel) << "type: " << type << "\n";
+    }
+    outfile << tabs(indentlevel) << "x: " << x << "\n";
     outfile << tabs(indentlevel) << "y: " << x << "\n";
     outfile << tabs(indentlevel) <<  "next: " << next.rawId() << "\n";
-    // outfile << tabs(indentlevel) <<  "previous: " << previous.rawId() << "\n";
-    // outfile << tabs(indentlevel) <<  "north: " << north.rawId() << "\n";
-    // outfile << tabs(indentlevel) <<  "south: " << south.rawId() << "\n";
-    // outfile << tabs(indentlevel) <<  "west: " << west.rawId() << "\n";
-    // outfile << tabs(indentlevel) <<  "east: " << east.rawId() << "\n";
   }
   void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
@@ -63,13 +62,15 @@ public:
 class Wafer : public yamlwo
 {
 public:
+  bool issilicon = true;
   float middle_x;
   float middle_y;
   int si_thickness;
   std::map<std::pair< int, int >, Cell> cells;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
-    outfile << "middle_x: " << middle_x << "\n";
+    outfile << "issilicon: " << issilicon << "\n";
+    outfile << tabs(indentlevel) << "middle_x: " << middle_x << "\n";
     outfile << tabs(indentlevel) << "middle_y: " << middle_y << "\n";
     outfile << tabs(indentlevel) << "si_thickness: " << si_thickness << "\n";
   }
@@ -85,11 +86,13 @@ public:
   }
 };
 
+
 class Layer : public yamlwo
 {
 public:
   float z;
   std::map<std::pair<int, int>, Wafer> wafers;
+  std::map<std::pair<int, int>, Cell> tiles;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     outfile << tabs(indentlevel) << "z: " << z << "\n";
@@ -99,9 +102,12 @@ public:
     for (auto &[key, val] : wafers)
     {
       outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", "<< key.second << "]\n";
-      // outfile << tabs(indentlevel) << "? !!python/tuple\n";
-      // outfile << tabs(indentlevel) << "- " << key.first << "\n";
-      // outfile << tabs(indentlevel) << "- " << key.second << "\n";
+      outfile << tabs(indentlevel) << ": ";
+      val.toyaml(outfile, indentlevel+1);
+    }
+    for (auto &[key, val] : tiles)
+    {
+      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", "<< key.second << "]\n";
       outfile << tabs(indentlevel) << ": ";
       val.toyaml(outfile, indentlevel+1);
     }

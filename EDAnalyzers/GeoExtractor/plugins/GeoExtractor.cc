@@ -52,6 +52,7 @@
 #include "Geometry/CaloTopology/interface/HGCalTopology.h"
 
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
+#include "DataFormats/ForwardDetId/interface/HGCScintillatorDetId.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/Records/interface/HGCalGeometryRecord.h"
 #include "Geometry/Records/interface/IdealGeometryRecord.h"
@@ -100,7 +101,7 @@ private:
   hgcal::RecHitTools recHitTools;
 
   // container for the topologyies
-  std::map<int, edm::ESHandle<HGCalTopology>> m_topo;
+  std::map<int, edm::ESHandle<HGCalTopology> > m_topo;
 
   //// IO
   // file to write the yaml structured detector information out
@@ -279,35 +280,52 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     }
     Layer &layer = subdet.layers[layerid];
 
-    //Setup the Wafer
-    std::pair<int, int> waferid = recHitTools.getWafer(cID);
-    if (layer.wafers.find(waferid) == layer.wafers.end())
+    std::pair<int, int> cellid;
+    std::pair<int, int> waferid;
+    Cell *cellptr;
+    // setup the tiles or wafer depending on the detector
+    if (detectorid == DetId::HGCalEE || detectorid == DetId::HGCalHSi)
     {
-      layer.wafers[waferid];
-      // NA
-      // layer.wafers[waferid].middle_x= recHitTools.getPosition(cID)[0];
-      // layer.wafers[waferid].middle_y= recHitTools.getPosition(cID)[1];
-      layer.wafers[waferid].si_thickness = recHitTools.getSiThickIndex(cID);
+      //Setup the Wafer
+      waferid = recHitTools.getWafer(cID);
+      if (layer.wafers.find(waferid) == layer.wafers.end())
+      {
+        layer.wafers[waferid];
+        layer.wafers[waferid].si_thickness = recHitTools.getSiThickIndex(cID);
+      }
+      Wafer &wafer = layer.wafers[waferid];
+
+      cellid = recHitTools.getCell(cID);
+      wafer.cells[cellid];
+      cellptr = &wafer.cells[cellid];
+      // std::cout << "Adding cell:" << printcell(detectorid, subdetid, layerid, waferid, cellid) << "\n";
     }
-    Wafer &wafer = layer.wafers[waferid];
-
-    //Setup the Cell
-    std::pair<int, int> cellid = recHitTools.getCell(cID);
-    wafer.cells[cellid];
-    Cell &cell = wafer.cells[cellid];
-
-    if (detectorid != 10)
+    else if (detectorid == DetId::HGCalHSc)
+    {
+      HGCScintillatorDetId scid = HGCScintillatorDetId(cID);
+      cellid = scid.ietaphi();
+      if (layer.tiles.find(cellid) == layer.tiles.end())
+      {
+        layer.tiles[cellid];
+      }
+      cellptr = &layer.tiles[cellid];
+      // std::cout << "Adding cell:" << printcell(detectorid, subdetid, layerid, cellid, std::pair<int, int>(0,0)) << "\n";
+    }
+    Cell &cell = *cellptr;
+    if (detectorid != DetId::HGCalHSc)
     {
       continue;
-    }
-    else
-    {
-      std::cout << "Adding cell:" << printcell(detectorid, subdetid, layerid, waferid, cellid)<<"\n";
     }
 
     cell.globalid = cID;
     cell.x = recHitTools.getPosition(cID).x();
     cell.y = recHitTools.getPosition(cID).y();
+
+    if (detectorid == DetId::HGCalHSc)
+    {
+      HGCScintillatorDetId scid = HGCScintillatorDetId(cID);
+      cell.type = scid.type();
+    }
 
     cell.neighbors = handle_topo_HGCal->neighbors(cID);
 
@@ -315,8 +333,16 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->detectorid.push_back(detectorid);
     treeOutput->subdetid.push_back(subdetid);
     treeOutput->layerid.push_back(layerid);
-    treeOutput->waferid.push_back(waferid);
-    treeOutput->cellid.push_back(cellid);
+    if (detectorid == DetId::HGCalHSc)
+    {
+      treeOutput->waferortileid.push_back(cellid);
+      treeOutput->cellid.push_back(std::pair<int, int>(0,0));
+    }
+    else
+    {
+      treeOutput->waferortileid.push_back(waferid);
+      treeOutput->cellid.push_back(cellid);
+    }
 
     n_printed++;
   }
@@ -347,16 +373,27 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
 
     //Setup the layer
     unsigned int layerid = recHitTools.getLayer(cID);
+
+    Cell *cellptr;
     Layer &layer = subdet.layers[layerid];
 
-    //Setup the Wafer
-    std::pair<int, int> waferid = recHitTools.getWafer(cID);
-    Wafer &wafer = layer.wafers[waferid];
+    if (detectorid == DetId::HGCalEE || detectorid == DetId::HGCalHSi)
+    {
+      // get the cellid
+      std::pair<int, int> cellid = recHitTools.getCell(cID);
+      //Setup the Wafer
+      std::pair<int, int> waferid = recHitTools.getWafer(cID);
+      cellptr = &layer.wafers[waferid].cells[cellid];
+    }
+    else if (detectorid == DetId::HGCalHSi)
+    {
+      //Setup the Wafer
+      HGCScintillatorDetId scid = HGCScintillatorDetId(cID);
+      std::pair<int, int> cellid = scid.ietaphi();
+      cellptr = &layer.tiles[cellid];
+    }
 
-    //Setup the Cell
-    std::pair<int, int> cellid = recHitTools.getCell(cID);
-    wafer.cells[cellid];
-    Cell &cell = wafer.cells[cellid];
+    Cell &cell = *cellptr;
     cell.next = findNextCell(cID);
   }
 }
@@ -380,13 +417,13 @@ DetId GeoExtractor::findNextCell(DetId cellId)
   {
     if (layerid < 22)
     {
-      // printf("A");
+      printf("A");
       return findCellCloseToXYpos(cellId, detectorid, subdetid, layerid + 1).first;
     }
     // to the the next detector
     else
     {
-      // printf("B");
+      printf("B");
       return findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, 1).first;
     }
   }
@@ -395,7 +432,7 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     // for layer <8 all cells we can just search in the Si part
     if (layerid < 8 && detectorid == DetId::HGCalHSi)
     {
-      // printf("C");
+      printf("C");
       return findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, layerid + 1).first;
     }
     else if (layerid == 22)
@@ -442,22 +479,22 @@ std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
   // if getcell can't find the wafer / cell it starts with the (0,0) coordinates
   DetId closest_cell = getcell(detectorid, subdetid, layerid, wafer, cell);
 
-  // printf("3\n");
-  // printf("closest_cell %u, det %u, subdet %u\n", closest_cell.rawId(),closest_cell.det(), closest_cell.subdetId());
-  // printf("layer %u\n", recHitTools.getLayer(closest_cell));
+  printf("3\n");
+  printf("closest_cell %u, det %u, subdet %u\n", closest_cell.rawId(),closest_cell.det(), closest_cell.subdetId());
+  printf("layer %u\n", recHitTools.getLayer(closest_cell));
 
   float x_cur = recHitTools.getPosition(closest_cell).x();
   float y_cur = recHitTools.getPosition(closest_cell).y();
   float d_cur = (x_cur - x) * (x_cur - x) + (y_cur - y) * (y_cur - y);
   bool improvement = true;
-  // printf("3.5 ");
+  printf("3.5 ");
   while (improvement)
   {
     improvement = false;
 
     for (DetId &neighbor : handle_topo_HGCal->neighbors(closest_cell))
     {
-      // printf("4");
+      printf("4");
       float xn = recHitTools.getPosition(closest_cell).x();
       float yn = recHitTools.getPosition(closest_cell).y();
       float dn = (xn - x) * (xn - x) + (yn - y) * (yn - y);
@@ -473,38 +510,54 @@ std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
   return std::make_pair(closest_cell, d_cur);
 }
 
-DetId GeoExtractor::getcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferid, std::pair<int, int> cellid)
+DetId GeoExtractor::getcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferortileid, std::pair<int, int> cellid)
 {
   if (detcol.detectors.find(detectorid) == detcol.detectors.end())
   {
-    throw std::invalid_argument("No such detector\n" + printcell(detectorid, subdetid, layerid, waferid, cellid));
+    throw std::invalid_argument("No such detector\n" + printcell(detectorid, subdetid, layerid, waferortileid, cellid));
   }
   Det &detector = detcol.detectors[detectorid];
 
   if (detector.subdetectors.find(subdetid) == detector.subdetectors.end())
   {
-    throw std::invalid_argument("No such subdetector\n" + printcell(detectorid, subdetid, layerid, waferid, cellid));
+    throw std::invalid_argument("No such subdetector\n" + printcell(detectorid, subdetid, layerid, waferortileid, cellid));
   }
   Subdet &subdet = detector.subdetectors[subdetid];
 
   if (subdet.layers.find(layerid) == subdet.layers.end())
   {
-    throw std::invalid_argument("No such layer\n" + printcell(detectorid, subdetid, layerid, waferid, cellid));
+    throw std::invalid_argument("No such layer\n" + printcell(detectorid, subdetid, layerid, waferortileid, cellid));
   }
   Layer &layer = subdet.layers[layerid];
 
-  if (layer.wafers.find(waferid) == layer.wafers.end())
+  if (detectorid == DetId::HGCalEE || detectorid == DetId::HGCalHSi)
   {
-    waferid = layer.wafers.begin()->first;
-  }
-  Wafer &wafer = layer.wafers[waferid];
+    if (layer.wafers.find(waferortileid) == layer.wafers.end())
+    {
+      waferortileid = layer.wafers.begin()->first;
+    }
+    Wafer &wafer = layer.wafers[waferortileid];
 
-  if (wafer.cells.find(cellid) == wafer.cells.end())
-  {
-    cellid = wafer.cells.begin()->first;
+    if (wafer.cells.find(cellid) == wafer.cells.end())
+    {
+      cellid = wafer.cells.begin()->first;
+    }
+    Cell &cell = wafer.cells[cellid];
+    return cell.globalid;
   }
-  Cell &cell = wafer.cells[cellid];
-  return cell.globalid;
+  else if (detectorid == DetId::HGCalHSi)
+  {
+    if (layer.tiles.find(waferortileid) == layer.tiles.end())
+    {
+      waferortileid = layer.tiles.begin()->first;
+    }
+    return layer.tiles[waferortileid].globalid;
+  }
+  else
+  {
+    throw std::invalid_argument("");
+  }
+  return DetId(0);
 }
 
 std::string GeoExtractor::printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferid, std::pair<int, int> cellid)
