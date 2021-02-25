@@ -1,9 +1,10 @@
 #include <fstream>
 #include <string>
+#include <iostream>
 
 std::string tabs(int n)
 {
-  return std::string(2*n, ' ');
+  return std::string(2 * n, ' ');
 }
 
 class yamlwo
@@ -37,12 +38,13 @@ public:
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     outfile << "issilicon: " << issilicon << "\n";
-    if (issilicon) {
+    if (issilicon)
+    {
       outfile << tabs(indentlevel) << "type: " << type << "\n";
     }
     outfile << tabs(indentlevel) << "x: " << x << "\n";
     outfile << tabs(indentlevel) << "y: " << x << "\n";
-    outfile << tabs(indentlevel) <<  "next: " << next.rawId() << "\n";
+    outfile << tabs(indentlevel) << "next: " << next.rawId() << "\n";
   }
   void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
@@ -50,12 +52,30 @@ public:
     for (DetId const &e : neighbors)
     {
       outfile << e.rawId();
-      if (e != neighbors[neighbors.size()-1])
+      if (e != neighbors[neighbors.size() - 1])
       {
         outfile << ", ";
       }
     }
     outfile << "]\n";
+  }
+  friend std::ostream &operator<<(std::ostream &os, const Cell &c)
+  {
+    os << "Cell {";
+    os << "issilicon: " << c.issilicon << ", ";
+    os << "type: " << c.type << ", ";
+    os << "globalid: " << c.globalid.rawId() << ", ";
+    os << "x: " << c.x << ", ";
+    os << "y: " << c.y << ", ";
+    os << "next: " << c.next.rawId() << ", ";
+    os << "previous: " << c.previous.rawId() << ", ";
+    os << "neighbors: [";
+    for (auto &val : c.neighbors)
+    {
+      os << val.rawId() << ", ";
+    }
+    os << "]}\n";
+    return os;
   }
 };
 
@@ -66,7 +86,7 @@ public:
   float middle_x;
   float middle_y;
   int si_thickness;
-  std::map<std::pair< int, int >, Cell> cells;
+  std::map<std::pair<int, int>, Cell> cells;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     outfile << "issilicon: " << issilicon << "\n";
@@ -79,13 +99,12 @@ public:
     for (auto &[key, val] : cells)
     {
       // outfile << tabs(indentlevel) << key.rawId() << ":\n";
-      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", "<< key.second << "]\n";
+      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
       outfile << tabs(indentlevel) << ": ";
-      val.toyaml(outfile, indentlevel+1);
+      val.toyaml(outfile, indentlevel + 1);
     }
   }
 };
-
 
 class Layer : public yamlwo
 {
@@ -101,15 +120,15 @@ public:
   {
     for (auto &[key, val] : wafers)
     {
-      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", "<< key.second << "]\n";
+      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
       outfile << tabs(indentlevel) << ": ";
-      val.toyaml(outfile, indentlevel+1);
+      val.toyaml(outfile, indentlevel + 1);
     }
     for (auto &[key, val] : tiles)
     {
-      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", "<< key.second << "]\n";
+      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
       outfile << tabs(indentlevel) << ": ";
-      val.toyaml(outfile, indentlevel+1);
+      val.toyaml(outfile, indentlevel + 1);
     }
   }
 };
@@ -127,7 +146,7 @@ public:
     for (auto &[key, val] : layers)
     {
       outfile << tabs(indentlevel) << key << ":\n";
-      val.toyaml(outfile, indentlevel+1);
+      val.toyaml(outfile, indentlevel + 1);
     }
   }
 };
@@ -145,7 +164,7 @@ public:
     for (auto &[key, val] : subdetectors)
     {
       outfile << tabs(indentlevel) << key << ":\n";
-      val.toyaml(outfile, indentlevel+1);
+      val.toyaml(outfile, indentlevel + 1);
     }
   }
 };
@@ -163,7 +182,24 @@ public:
     for (auto &[key, val] : detectors)
     {
       outfile << tabs(indentlevel) << key << ":\n";
-      val.toyaml(outfile, indentlevel+1);
+      val.toyaml(outfile, indentlevel + 1);
     }
   }
 };
+
+// std::ostream &operator<<(std::ostream &os, const DetId &id)
+// {
+//   os << "DetId {" << id.rawId() << "}";
+//   return os;
+// }
+
+// std::ostream &operator<<(std::ostream &os, const std::vector<DetId> &v)
+// {
+//   os << "DetId [";
+//   for (auto &val : v)
+//   {
+//     os << val.rawId() << ", ";
+//   }
+//   os << "]";
+//   return os;
+// }
