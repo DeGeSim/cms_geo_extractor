@@ -419,7 +419,7 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
     // {
     //   continue;
     // }
-    std::cout << "skipping everything but 2426030080";
+    // std::cout << "skipping everything but 2426030080";
     if (i % 1000 == 0)
     {
       printf("Assinging z neighbors %i\n", i);
