@@ -1,3 +1,5 @@
+#ifndef DetO_Hcust
+#define DetO_Hcust 1
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -83,15 +85,11 @@ class Wafer : public yamlwo
 {
 public:
   bool issilicon = true;
-  float middle_x;
-  float middle_y;
   int si_thickness;
   std::map<std::pair<int, int>, Cell> cells;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     outfile << "issilicon: " << issilicon << "\n";
-    outfile << tabs(indentlevel) << "middle_x: " << middle_x << "\n";
-    outfile << tabs(indentlevel) << "middle_y: " << middle_y << "\n";
     outfile << tabs(indentlevel) << "si_thickness: " << si_thickness << "\n";
   }
   void printmap(std::ofstream &outfile, int indentlevel = 0)
@@ -187,19 +185,4 @@ public:
   }
 };
 
-// std::ostream &operator<<(std::ostream &os, const DetId &id)
-// {
-//   os << "DetId {" << id.rawId() << "}";
-//   return os;
-// }
-
-// std::ostream &operator<<(std::ostream &os, const std::vector<DetId> &v)
-// {
-//   os << "DetId [";
-//   for (auto &val : v)
-//   {
-//     os << val.rawId() << ", ";
-//   }
-//   os << "]";
-//   return os;
-// }
+#endif
