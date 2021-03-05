@@ -2,11 +2,10 @@
 #define MakePrintable_H 1
 #include <iostream>
 #include <vector>
-using namespace std;
 
-// C++ template to print vector container elements
+// C++ template to print std::vector container elements
 template <typename T>
-ostream &operator<<(ostream &os, const vector<T> &v)
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
 {
     os << "[";
     for (int i = 0; i < v.size(); ++i)
@@ -19,9 +18,9 @@ ostream &operator<<(ostream &os, const vector<T> &v)
     return os;
 }
 
-// C++ template to print set container elements
+// C++ template to print std::set container elements
 template <typename T>
-ostream &operator<<(ostream &os, const set<T> &v)
+std::ostream &operator<<(std::ostream &os, const std::set<T> &v)
 {
     os << "[";
     for (auto it : v)
@@ -33,9 +32,9 @@ ostream &operator<<(ostream &os, const set<T> &v)
     os << "]\n";
     return os;
 }
-// C++ template to print map container elements
+// C++ template to print std::map container elements
 template <typename T, typename S>
-ostream &operator<<(ostream &os, const map<T, S> &v)
+std::ostream &operator<<(std::ostream &os, const std::map<T, S> &v)
 {
     for (auto it : v)
         os << it.first << " : "
@@ -45,7 +44,7 @@ ostream &operator<<(ostream &os, const map<T, S> &v)
 }
 
 template <typename T, typename S>
-ostream &operator<<(ostream &os, const pair<T, S> &v)
+std::ostream &operator<<(std::ostream &os, const std::pair<T, S> &v)
 {
     os << "(";
     os << v.first << ", "
@@ -55,7 +54,18 @@ ostream &operator<<(ostream &os, const pair<T, S> &v)
 
 typedef std::tuple<unsigned int, unsigned int, unsigned int, std::pair<int, int>, std::pair<int, int> > CellHash;
 
-ostream &operator<<(ostream &os, const CellHash &hash)
+std::ostream &operator<<(std::ostream &os, const CellHash &hash)
+{
+    auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
+    os << "Det " << detectorid;
+    os << " Subdet " << subdetid;
+    os << " Layer " << layerid;
+    os << " Wafer (" << waferortileid.first << "," << waferortileid.second << ")";
+    os << " Cell (" << cellid.first << "," << cellid.second << ")";
+    return os;
+}
+
+std::ostringstream &operator<<(std::ostringstream &os, const CellHash &hash)
 {
     auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
     os << "Det " << detectorid;
