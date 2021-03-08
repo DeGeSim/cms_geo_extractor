@@ -143,8 +143,10 @@ public:
   {
     for (auto &[key, val] : layers)
     {
-      outfile << tabs(indentlevel) << key << ":\n";
-      val.toyaml(outfile, indentlevel + 1);
+      // Currently the HGCAL subdetector modules are implemented as differnt detectors in cmssw, so we can just skip them:
+      // outfile << tabs(indentlevel) << key << ":\n";
+      // val.toyaml(outfile, indentlevel + 1);
+      val.toyaml(outfile, indentlevel);
     }
   }
 };
