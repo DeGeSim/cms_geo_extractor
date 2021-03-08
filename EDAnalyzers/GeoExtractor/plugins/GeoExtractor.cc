@@ -68,6 +68,8 @@
 #include "EDAnalyzers/GeoExtractor/interface/DetO.h"
 #include "EDAnalyzers/GeoExtractor/interface/MakePrintable.h"
 
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+
 #include <Compression.h>
 #include <TH1F.h>
 #include <TH2F.h>
@@ -78,15 +80,18 @@
 
 #include <fstream>
 #include <stdexcept>
-// #include <iostream>
+#include <stdlib.h>
+
+// setup  the logger outside
+#include "EDAnalyzers/GeoExtractor/interface/Log.h"
+structlog LOGCFG = {};
+
 // class declaration
-//
 
 // If the analyzer does not use TFileService, please remove
 // the template argument to the base class so the class inherits
 // from  edm::one::EDAnalyzer<>
 // This will improve performance in multithreaded jobs.
-
 class GeoExtractor : public edm::one::EDAnalyzer<edm::one::SharedResources>
 {
 public:
@@ -153,6 +158,10 @@ GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
   v_HGCalDets.push_back(DetId::HGCalEE);
   v_HGCalDets.push_back(DetId::HGCalHSi);
   v_HGCalDets.push_back(DetId::HGCalHSc);
+
+  //set the loglevel here
+  LOGCFG.headers = false;
+  LOGCFG.level = DEBUG;
 }
 GeoExtractor::~GeoExtractor()
 {
@@ -170,7 +179,7 @@ GeoExtractor::~GeoExtractor()
 std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCellIds)
 {
   std::vector<DetId> v_validHGCalIds;
-  printf("#All cell ids %i\n", (int)v_allCellIds.size());
+  LOG(DEBUG) << "#All cell ids " << v_allCellIds.size() << "\n";
   for (auto detectorid : v_HGCalDets)
   {
     m_rej[detectorid];
@@ -214,19 +223,19 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
     // If all checks are pass, add the detId to the list of valid Ids.
     v_validHGCalIds.push_back(v_allCellIds[i]);
   }
-  std::cout << "\tdet    ";
-  std::cout << "x    ";
-  std::cout << "y    ";
-  std::cout << "z \n";
+  LOG(INFO) << "\tdet    ";
+  LOG(INFO) << "x    ";
+  LOG(INFO) << "y    ";
+  LOG(INFO) << "z \n";
   for (auto detectorid : v_HGCalDets)
   {
-    std::cout << detectorid << "\t";
-    std::cout << m_rej[detectorid]["det"] << "\t";
-    std::cout << m_rej[detectorid]["x"] << "\t";
-    std::cout << m_rej[detectorid]["y"] << "\t";
-    std::cout << m_rej[detectorid]["z"] << "\n";
+    LOG(INFO) << detectorid << "\t"<<"\n";
+    LOG(INFO) << m_rej[detectorid]["det"] << "\t";
+    LOG(INFO) << m_rej[detectorid]["x"] << "\t";
+    LOG(INFO) << m_rej[detectorid]["y"] << "\t";
+    LOG(INFO) << m_rej[detectorid]["z"] << "\n";
   }
-  printf("Cells left: %i\n", (int)v_validHGCalIds.size());
+  LOG(INFO) << "Cells left: " << v_validHGCalIds.size() << "\n";
   return v_validHGCalIds;
 }
 
@@ -274,7 +283,7 @@ void GeoExtractor::instanciateMapForCell(DetId &iterId)
 
     cellid = recHitTools.getCell(iterId);
     wafer.cells[cellid];
-    // std::cout << "Adding cell:" << printcell(detectorid, subdetid, layerid, waferid, cellid) << "\n";
+    // LOG(DEBUG) << "Adding cell:" << wafer.cells[cellid]<<"\n";
   }
   else
   {
@@ -284,7 +293,7 @@ void GeoExtractor::instanciateMapForCell(DetId &iterId)
     {
       layer.tiles[cellid];
     }
-    // std::cout << "Adding cell:" << printcell(detectorid, subdetid, layerid, cellid, std::pair<int, int>(0,0)) << "\n";
+    // LOG(DEBUG) << "Adding cell:" << layer.tiles[cellid]<<"\n";
   }
 }
 
@@ -362,10 +371,10 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
 
   // Filter the Ids
-  std::cout << "Fillter Cells\n";
+  LOG(INFO) << "Fillter Cells"<<"\n";
   v_validHGCalIds = filterCellIds(v_allCellIds);
 
-  std::cout << "Build the map\n";
+  LOG(INFO) << "Build the map"<<"\n";
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     DetId iterId = v_validHGCalIds[i];
@@ -373,7 +382,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
     if (!handle_topo_HGCal.isValid())
     {
-      printf("Error: Invalid HGCal topology. \n");
+      LOG(ERROR) << "Error: Invalid HGCal topology."<<"\n";
       exit(EXIT_FAILURE);
     }
     instanciateMapForCell(iterId);
@@ -383,10 +392,15 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     cellptr->x = recHitTools.getPosition(iterId).x();
     cellptr->y = recHitTools.getPosition(iterId).y();
 
-    if (detectorid == DetId::HGCalHSc)
+    if (isSiliconDet(detectorid))
+    {
+      cellptr->issilicon = true;
+    }
+    else
     {
       HGCScintillatorDetId scid = HGCScintillatorDetId(iterId);
       cellptr->type = scid.type();
+      cellptr->issilicon = false;
     }
     // only assign neighbors with valid ids
     for (auto &neighbor : handle_topo_HGCal->neighbors(iterId))
@@ -405,7 +419,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->cellid.push_back(cellid);
     n_printed++;
   }
-  std::cout << "Assing the Z neighbors\n";
+  LOG(INFO) << "Assing the Z neighbors."<<"\n";
   assignZneighbors(v_validHGCalIds);
 }
 
@@ -419,10 +433,10 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
     // {
     //   continue;
     // }
-    // std::cout << "skipping everything but 2426030080";
+    // LOG(DEBUG) << "skipping everything but 2426030080"<<"\n";
     if (i % 1000 == 0)
     {
-      printf("Assinging z neighbors %i\n", i);
+      LOG(DEBUG) << "Assinging z neighbors " << i <<"\n";
     }
     Cell *cellptr = getCellptr(iterId);
     validateId(cellptr->globalid);
@@ -434,10 +448,11 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
 // The heavy lifting is done by the findCellCloseToXYpos
 DetId GeoExtractor::findNextCell(DetId cellId)
 {
-  std::cout << "Start findNextCell\n";
-  auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHashKeys(cellId);
-  std::cout << "find cell for id" << cellId.rawId() << "\n";
-  std::cout << getCellHashKeys(cellId) << "\n";
+  LOG(DEBUG) << "Start findNextCell"<<"\n";
+  CellHash hash = getCellHashKeys(cellId);
+  auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
+  LOG(DEBUG) << "find cell for id" << cellId.rawId()<<"\n";
+  LOG(DEBUG) << getCellHashKeys(cellId)<<"\n";
   //
   // HGCalEE = 8, layer 1-28
   // HGCalHSi = 9, layer 1-22
@@ -449,13 +464,13 @@ DetId GeoExtractor::findNextCell(DetId cellId)
   {
     if (layerid < 22)
     {
-      printf("A\n");
+      LOG(DEBUG) << "A"<<"\n";
       return findCellCloseToXYpos(cellId, detectorid, subdetid, layerid + 1).first;
     }
     // to the the next detector EE-> HSi
     else
     {
-      printf("B\n");
+      LOG(DEBUG) << "B"<<"\n";
       // TODO check if there are nodes in layer 1 of the HGCalSc
       return findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, 1).first;
     }
@@ -465,18 +480,18 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     // for layer <8 all cells we can just search in the Si part
     if (layerid < 8 && detectorid == DetId::HGCalHSi)
     {
-      printf("C\n");
+      LOG(DEBUG) << "C"<<"\n";
       return findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, layerid + 1).first;
     }
     // return 0 in the last layer
     else if (layerid == 22)
     {
-      printf("D\n");
+      LOG(DEBUG) << "D"<<"\n";
       return DetId(0);
     }
     else
     {
-      printf("E\n");
+      LOG(DEBUG) << "E"<<"\n";
       auto [sicanid, deltasi] = findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, layerid + 1);
       auto [sccanid, deltasc] = findCellCloseToXYpos(cellId, DetId::HGCalHSc, subdetid, layerid + 1);
       if (deltasi < deltasc)
@@ -489,8 +504,10 @@ DetId GeoExtractor::findNextCell(DetId cellId)
       }
     }
   }
-  printf("Det %i, Subdet %i, Layer %i", detectorid, subdetid, layerid);
-  throw std::invalid_argument("Wont find neighbor. This part should never be reached.\n");
+  // LOG(ERROR)  << hash << ""<<"\n"; //doenst work ?
+  std::cout << hash;
+  LOG(ERROR) << "Wont find neighbor. This part should never be reached."<<"\n";
+  exit(EXIT_FAILURE);
   return DetId(0);
 }
 
@@ -502,10 +519,8 @@ std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
     unsigned int targetsubdetid,
     unsigned int targetlayerid)
 {
-  std::cout << "Start findCellCloseToXYpos for" << originCellDetID.rawId() << "\n";
+  LOG(DEBUG) << "Start findCellCloseToXYpos for" << originCellDetID.rawId()<<"\n";
 
-  // Get the topo of the detector
-  edm::ESHandle<HGCalTopology> &handle_topo_HGCal = m_topo[targetdetectorid];
   //Get xy from the origin cell
   float x = recHitTools.getPosition(originCellDetID).x();
   float y = recHitTools.getPosition(originCellDetID).y();
@@ -515,50 +530,50 @@ std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
   // get the position of the cell, that we are searching the neighbor for.
   if (isSiliconDet(originCellDetID.det()))
   {
-    std::cout << "findCellCloseToXYpos:SiliconPos\n";
+    LOG(DEBUG) << "findCellCloseToXYpos:SiliconPos"<<"\n";
     targetwaferortileid = recHitTools.getWafer(originCellDetID);
     targetcellid = recHitTools.getCell(originCellDetID);
   }
   else
   {
-    std::cout << "findCellCloseToXYpos:Scintillator\n";
+    LOG(DEBUG) << "findCellCloseToXYpos:Scintillator"<<"\n";
     HGCScintillatorDetId scid = HGCScintillatorDetId(originCellDetID);
     targetwaferortileid = scid.ietaphi();
     targetcellid = std::make_pair(0, 0);
   }
 
-  std::cout << "search from cell\n";
-  std::cout << *getCellptr(originCellDetID) << "\n";
+  LOG(DEBUG) << "search from cell"<<"\n";
+  LOG(DEBUG) << *getCellptr(originCellDetID)<<"\n";
 
   // The cell that is the closest, to be replace by close cells
   // if getcell can't find the wafer / cell it starts with the (0,0) coordinates
   DetId closest_cellDetId = getstartcell(targetdetectorid, targetsubdetid, targetlayerid, targetwaferortileid, targetcellid);
   Cell *closest_cellptr = getCellptr(closest_cellDetId);
 
-  std::cout << "3: closest_cell\n";
+  LOG(DEBUG) << "3: closest_cell"<<"\n";
 
   float x_cur = closest_cellptr->x;
   float y_cur = closest_cellptr->y;
   float d_cur = (x_cur - x) * (x_cur - x) + (y_cur - y) * (y_cur - y);
   bool improvement = true;
-  printf("3.5\n");
+  LOG(DEBUG) << "3.5"<<"\n";
   while (improvement)
   {
     improvement = false;
 
     for (DetId &neighbor : closest_cellptr->neighbors)
     {
-      printf("    4\n");
+      LOG(DEBUG) << "    4"<<"\n";
       Cell *nptr = getCellptr(neighbor);
-      std::cout << "\t" << getCellHashKeys(neighbor) << "\n";
-      std::cout << "\t" << *nptr;
+      LOG(DEBUG) << "\t" << getCellHashKeys(neighbor)<<"\n";
+      LOG(DEBUG) << "\t" << *nptr<<"\n";
       float xn = nptr->x;
       float yn = nptr->y;
       float dn = (xn - x) * (xn - x) + (yn - y) * (yn - y);
       if (dn < d_cur)
       {
-        std::cout << "\t"
-                  << "improvement: " << dn << "<" << d_cur << "\n";
+        LOG(DEBUG) << "\t"
+                   << "improvement: " << dn << "<" << d_cur;
         improvement = true;
         closest_cellptr = nptr;
         d_cur = dn;
@@ -566,7 +581,7 @@ std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
       }
     }
   }
-  std::cout << "no improvement, exiting\n";
+  LOG(DEBUG) << "no improvement, exiting"<<"\n";
   return std::make_pair(closest_cellptr->globalid, d_cur);
 }
 
@@ -574,19 +589,25 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
 {
   if (detcol.detectors.find(detectorid) == detcol.detectors.end())
   {
-    throw std::invalid_argument("No such detector\n" + printcell(detectorid, subdetid, layerid, waferortileid, cellid));
+    LOG(ERROR) << "No such detector:\n"
+               << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+    exit(EXIT_FAILURE);
   }
   Det &detector = detcol.detectors[detectorid];
 
   if (detector.subdetectors.find(subdetid) == detector.subdetectors.end())
   {
-    throw std::invalid_argument("No such subdetector\n" + printcell(detectorid, subdetid, layerid, waferortileid, cellid));
+    LOG(ERROR) << "No such subdetector:\n"
+               << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+    exit(EXIT_FAILURE);
   }
   Subdet &subdet = detector.subdetectors[subdetid];
 
   if (subdet.layers.find(layerid) == subdet.layers.end())
   {
-    throw std::invalid_argument("No such layer\n" + printcell(detectorid, subdetid, layerid, waferortileid, cellid));
+    LOG(ERROR) << "No such layer:\n"
+               << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+    exit(EXIT_FAILURE);
   }
   Layer &layer = subdet.layers[layerid];
 
@@ -595,13 +616,15 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
   {
     if (layer.wafers.begin() == layer.wafers.end())
     {
-      throw std::invalid_argument("Wafer is empty\n" + printcell(detectorid, subdetid, layerid, waferortileid, cellid));
+      LOG(ERROR) << "Wafer is empty:\n"
+                 << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+      exit(EXIT_FAILURE);
     }
 
-    //find the wafer
+    //find the wafer, it may not exist in this layer, in this case search from the first in the list.
     if (layer.wafers.find(waferortileid) == layer.wafers.end())
     {
-      std::cout << "Cant find wafer\n";
+      LOG(DEBUG) << "Cant find wafer, using first wafer."<<"\n";
       waferortileid = layer.wafers.begin()->first;
     }
     Wafer &wafer = layer.wafers[waferortileid];
@@ -609,17 +632,17 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
     //Find the cell
     if (wafer.cells.find(cellid) == wafer.cells.end())
     {
-      std::cout << "Cant find cell\n";
+      LOG(DEBUG) << "Cant find cell, using first."<<"\n";
       cellid = wafer.cells.begin()->first;
     }
     Cell &cell = wafer.cells[cellid];
 
-    std::cout << "search: " << detectorid << " " << subdetid << " " << layerid << " " << waferortileid << " " << cellid << "\n";
+    LOG(DEBUG) << "search: " << detectorid << " " << subdetid << " " << layerid << " " << waferortileid << " " << cellid<<"\n";
 
-    std::cout << cell;
+    LOG(DEBUG) << cell<<"\n";
     HGCSiliconDetId siid = HGCSiliconDetId(cell.globalid);
-    std::cout << "startcell: "
-              << " " << cell.globalid.det() << " " << cell.globalid.subdetId() << " " << recHitTools.getLayer(cell.globalid) << " " << siid.waferUV() << " " << siid.cellUV() << "\n";
+    LOG(DEBUG) << "startcell: "
+               << " " << cell.globalid.det() << " " << cell.globalid.subdetId() << " " << recHitTools.getLayer(cell.globalid) << " " << siid.waferUV() << " " << siid.cellUV()<<"\n";
 
     return cell.globalid;
   }
@@ -627,16 +650,18 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
   {
     if (layer.tiles.begin() == layer.tiles.end())
     {
-      throw std::invalid_argument("Tiles is empty\n" + printcell(detectorid, subdetid, layerid, waferortileid, cellid));
+      LOG(ERROR) << "Tiles is empty\n"
+                 << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+      exit(EXIT_FAILURE);
     }
     if (layer.tiles.find(waferortileid) == layer.tiles.end())
     {
       waferortileid = layer.tiles.begin()->first;
     }
-    std::cout << "bar\n";
     return layer.tiles[waferortileid].globalid;
   }
-  throw std::invalid_argument("Dead End1");
+  LOG(ERROR) << "Dead End1"<<"\n";
+  exit(EXIT_FAILURE);
   return DetId(0);
 }
 
@@ -646,8 +671,8 @@ std::string GeoExtractor::printcell(unsigned int detectorid, unsigned int subdet
   stringStream << " Det " << detectorid;
   stringStream << " Subdet " << subdetid;
   stringStream << " Layer " << layerid;
-  stringStream << " Wafer (" << waferid.first << "," << waferid.second << ")";
-  stringStream << " Cell (" << cellid.first << "," << cellid.second << ")";
+  stringStream << " Wafer (" << waferid.first << "," << waferid.second << ")"<<"\n";
+  stringStream << " Cell (" << cellid.first << "," << cellid.second << ")"<<"\n";
   std::string copyOfStr = stringStream.str();
 
   return copyOfStr;
@@ -661,19 +686,19 @@ bool GeoExtractor::validId(DetId id)
   // unsigned int layerid = recHitTools.getLayer(id);
   if (detectorid != DetId::HGCalEE && detectorid != DetId::HGCalHSi && detectorid != DetId::HGCalHSc)
   {
-    std::cout << "wrong detector " << detectorid << "\n";
+    LOG(DEBUG) << "wrong detector " << detectorid << "\n";
     return false;
   }
   if (subdetid != 0)
   {
-    std::cout << "wrong subdetector " << subdetid << "\n";
+    LOG(DEBUG) << "wrong subdetector " << subdetid << "\n";
     return false;
   }
   // if (detectorid != DetId::HGCalEE)
   // {
   //   if (layerid < 1 || layerid > 28)
   //   {
-  //     std::cout << "layer ee "<< layerid << "\n";
+  //     LOG(DEBUG) << "layer ee "<< layerid << "\n";
   //     return false;
   //   }
   // }
@@ -681,7 +706,7 @@ bool GeoExtractor::validId(DetId id)
   // {
   //   if (layerid < 1 || layerid > 22)
   //   {
-  //     std::cout << "layer si "<< layerid << "\n";
+  //     LOG(DEBUG) << "layer si "<< layerid << "\n";
   //     return false;
   //   }
   // }
@@ -689,7 +714,7 @@ bool GeoExtractor::validId(DetId id)
   // {
   //   if (layerid < 9 || layerid > 22)
   //   {
-  //     std::cout << "layer hsc "<< layerid << "\n";
+  //     LOG(DEBUG) << "layer hsc "<< layerid << "\n";
   //     return false;
   //   }
   // }
@@ -699,8 +724,8 @@ void GeoExtractor::validateId(DetId id)
 {
   if (!validId(id))
   {
-    std::cout << "Invalid cell Id:" << id.rawId() << "\n";
-    std::cout << *getCellptr(id);
+    LOG(DEBUG) << "Invalid cell Id:" << id.rawId()<<"\n";
+    LOG(DEBUG) << *getCellptr(id)<<"\n";
     throw std::invalid_argument("Invalid Cell");
   }
 }

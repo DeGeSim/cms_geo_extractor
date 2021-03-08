@@ -76,7 +76,7 @@ public:
     {
       os << val.rawId() << ", ";
     }
-    os << "]}\n";
+    os << "]}";
     return os;
   }
 };
