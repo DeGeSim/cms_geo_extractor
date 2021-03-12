@@ -159,9 +159,9 @@ GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
   v_HGCalDets.push_back(DetId::HGCalHSi);
   v_HGCalDets.push_back(DetId::HGCalHSc);
 
-  //set the loglevel here
+  //set the loglevel here DEBUG < INFO < WARN < ERROR
   LOGCFG.headers = false;
-  LOGCFG.level = DEBUG;
+  LOGCFG.level = INFO;
 }
 GeoExtractor::~GeoExtractor()
 {
@@ -229,7 +229,7 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
   LOG(INFO) << "z \n";
   for (auto detectorid : v_HGCalDets)
   {
-    LOG(INFO) << detectorid << "\t"<<"\n";
+    LOG(INFO) << detectorid << "\t";
     LOG(INFO) << m_rej[detectorid]["det"] << "\t";
     LOG(INFO) << m_rej[detectorid]["x"] << "\t";
     LOG(INFO) << m_rej[detectorid]["y"] << "\t";
