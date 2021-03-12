@@ -35,6 +35,7 @@ namespace TreeOutputInfo
     std::vector<int> type;
     std::vector<bool> issilicon;
     std::vector<unsigned int> next;
+    std::vector<unsigned int> previous;
     std::vector<unsigned int> nneighbors;
     std::vector<unsigned int> n0;
     std::vector<unsigned int> n1;
@@ -61,6 +62,7 @@ namespace TreeOutputInfo
       tree->Branch("type", &type);
       tree->Branch("issilicon", &issilicon);
       tree->Branch("next", &next);
+      tree->Branch("previous", &previous);
       tree->Branch("nneighbors", &nneighbors);
       tree->Branch("n0", &n0);
       tree->Branch("n1", &n1);
@@ -87,6 +89,7 @@ namespace TreeOutputInfo
       type.clear();
       issilicon.clear();
       next.clear();
+      previous.clear();
       nneighbors.clear();
       n0.clear();
       n1.clear();
