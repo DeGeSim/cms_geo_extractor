@@ -432,8 +432,10 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->type.push_back(cellptr->type);
     treeOutput->issilicon.push_back(cellptr->issilicon);
     treeOutput->next.push_back(cellptr->next);
+    treeOutput->nneighbors.push_back((int)cellptr->neighbors.size());
 
-    // add the neigbo
+
+    // add the neighbors
     std::vector<std::vector<unsigned int>*> v_neighborTreeptrs;
     v_neighborTreeptrs.push_back(&treeOutput->n0);
     v_neighborTreeptrs.push_back(&treeOutput->n1);
