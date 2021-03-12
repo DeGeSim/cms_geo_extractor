@@ -84,20 +84,24 @@ public:
 class Wafer : public yamlwo
 {
 public:
-  bool issilicon = true;
-  int si_thickness;
   std::map<std::pair<int, int>, Cell> cells;
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
-    outfile << "issilicon: " << issilicon << "\n";
-    outfile << tabs(indentlevel) << "si_thickness: " << si_thickness << "\n";
   }
   void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
+    bool firstelement = true;
     for (auto &[key, val] : cells)
     {
-      // outfile << tabs(indentlevel) << key.rawId() << ":\n";
-      outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
+      if (firstelement)
+      {
+        outfile << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
+        firstelement=false;
+      }
+      else
+      {
+        outfile << tabs(indentlevel) << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
+      }
       outfile << tabs(indentlevel) << ": ";
       val.toyaml(outfile, indentlevel + 1);
     }
@@ -143,10 +147,8 @@ public:
   {
     for (auto &[key, val] : layers)
     {
-      // Currently the HGCAL subdetector modules are implemented as differnt detectors in cmssw, so we can just skip them:
-      // outfile << tabs(indentlevel) << key << ":\n";
-      // val.toyaml(outfile, indentlevel + 1);
-      val.toyaml(outfile, indentlevel);
+      outfile << tabs(indentlevel) << key << ":\n";
+      val.toyaml(outfile, indentlevel + 1);
     }
   }
 };
@@ -163,8 +165,10 @@ public:
   {
     for (auto &[key, val] : subdetectors)
     {
-      outfile << tabs(indentlevel) << key << ":\n";
-      val.toyaml(outfile, indentlevel + 1);
+      // Currently the HGCAL subdetector modules are implemented as differnt detectors in cmssw, so we can just skip them:
+      val.toyaml(outfile, indentlevel);
+      // outfile << tabs(indentlevel) << key << ":\n";
+      // val.toyaml(outfile, indentlevel + 1);
     }
   }
 };
