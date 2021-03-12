@@ -277,7 +277,6 @@ void GeoExtractor::instanciateMapForCell(DetId &iterId)
     if (layer.wafers.find(waferid) == layer.wafers.end())
     {
       layer.wafers[waferid];
-      layer.wafers[waferid].si_thickness = recHitTools.getSiThickIndex(iterId);
     }
     Wafer &wafer = layer.wafers[waferid];
 
@@ -395,10 +394,12 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     if (isSiliconDet(detectorid))
     {
       cellptr->issilicon = true;
+      cellptr->type = recHitTools.getSiThickIndex(iterId);
     }
     else
     {
       HGCScintillatorDetId scid = HGCScintillatorDetId(iterId);
+
       cellptr->type = scid.type();
       cellptr->issilicon = false;
     }
