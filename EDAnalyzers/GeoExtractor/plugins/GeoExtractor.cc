@@ -418,10 +418,42 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->layerid.push_back(layerid);
     treeOutput->waferortileid.push_back(waferortileid);
     treeOutput->cellid.push_back(cellid);
+
     n_printed++;
   }
   LOG(INFO) << "Assing the Z neighbors."<<"\n";
   assignZneighbors(v_validHGCalIds);
+  for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
+  {
+    DetId iterId = v_validHGCalIds[i];
+    Cell * cellptr = getCellptr(iterId);
+    treeOutput->x.push_back(cellptr->x);
+    treeOutput->y.push_back(cellptr->y);
+    treeOutput->type.push_back(cellptr->type);
+    treeOutput->issilicon.push_back(cellptr->issilicon);
+    treeOutput->next.push_back(cellptr->next);
+
+    // add the neigbo
+    std::vector<std::vector<unsigned int>*> v_neighborTreeptrs;
+    v_neighborTreeptrs.push_back(&treeOutput->n0);
+    v_neighborTreeptrs.push_back(&treeOutput->n1);
+    v_neighborTreeptrs.push_back(&treeOutput->n2);
+    v_neighborTreeptrs.push_back(&treeOutput->n3);
+    v_neighborTreeptrs.push_back(&treeOutput->n4);
+    v_neighborTreeptrs.push_back(&treeOutput->n5);
+    v_neighborTreeptrs.push_back(&treeOutput->n6);
+    v_neighborTreeptrs.push_back(&treeOutput->n7);
+    for (int i = 0; i < 8; i++)
+    {
+      if (i<(int)cellptr->neighbors.size()){
+        v_neighborTreeptrs[i]->push_back(cellptr->neighbors[i]);
+      }
+      else {
+        v_neighborTreeptrs[i]->push_back(0);
+      }
+      
+    }
+  }
 }
 
 // wraps findNextCell and loops over the ids
@@ -666,6 +698,8 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
   return DetId(0);
 }
 
+// this method is needed even though we can cout << cell
+// because we need to print out cells that dont exitst.
 std::string GeoExtractor::printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferid, std::pair<int, int> cellid)
 {
   std::ostringstream stringStream;
