@@ -32,7 +32,7 @@ namespace TreeOutputInfo
 
     std::vector<float> x;
     std::vector<float> y;
-    std::vector<int> type;
+    std::vector<int> celltype;
     std::vector<bool> issilicon;
     std::vector<unsigned int> next;
     std::vector<unsigned int> previous;
@@ -59,7 +59,7 @@ namespace TreeOutputInfo
       tree->Branch("cellid", &cellid);
       tree->Branch("x", &x);
       tree->Branch("y", &y);
-      tree->Branch("type", &type);
+      tree->Branch("celltype", &celltype);
       tree->Branch("issilicon", &issilicon);
       tree->Branch("next", &next);
       tree->Branch("previous", &previous);
@@ -86,7 +86,7 @@ namespace TreeOutputInfo
       waferortileid.clear();
       x.clear();
       y.clear();
-      type.clear();
+      celltype.clear();
       issilicon.clear();
       next.clear();
       previous.clear();

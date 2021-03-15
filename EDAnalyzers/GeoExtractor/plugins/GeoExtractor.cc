@@ -221,13 +221,14 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   }
   LOG(INFO) << "Assing the Z neighbors."<<"\n";
   assignZneighbors(v_validHGCalIds);
+
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     DetId iterId = v_validHGCalIds[i];
     Cell * cellptr = getCellptr(iterId);
     treeOutput->x.push_back(cellptr->x);
     treeOutput->y.push_back(cellptr->y);
-    treeOutput->type.push_back(cellptr->type);
+    treeOutput->celltype.push_back(cellptr->type);
     treeOutput->issilicon.push_back(cellptr->issilicon);
     treeOutput->next.push_back(cellptr->next);
     treeOutput->nneighbors.push_back((int)cellptr->neighbors.size());
