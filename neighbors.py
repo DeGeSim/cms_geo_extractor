@@ -1,4 +1,4 @@
-#%%
+# %%
 import yaml
 import uproot
 import os
@@ -20,35 +20,73 @@ else:
     with open(fngeopic, "wb") as f:
         pickle.dump(geoD, f)
 
-#%%
+# %%
 rf = uproot.open("output/DetIdLUT.root")
 arr = rf["analyzer/tree"].arrays()
 keydf = ak.to_pandas(arr[0])
+keydf = keydf.set_index("globalid")
 
-#%%
+# %%
 def getcellfromrow(row):
     return geoD[row["detectorid"]][row["layerid"]][
         (row["waferortileid.first"], row["waferortileid.second"])
     ][(row["cellid.first"], row["cellid.second"])]
 
-#%%
+
+# %%
+# Cells per detetor
+sns.catplot(x="detectorid", data=keydf, kind="count")
+
+# Types of the detector cells
+sns.catplot(x="type", data=keydf, kind="count", hue="detectorid")
+# %%
+
+# Check how frequent the neigbors are
+ids, counts = np.unique(keydf["next"], return_counts=True)
+ids, counts = list(ids), list(counts)
+
+countsL = [(i, c) for i, c in zip(ids, counts) if i != 0 and c != 1]
+plt.hist(list(zip(*countsL))[1])
 
 
+# %%
+# Number of cells per player
+d8df = keydf[keydf["detectorid"] == 8]
+d8df["layerid"].value_counts().plot(kind="bar")
+# %%
+
+def issiliconFromId(id):
+    if id == 0:
+        return None
+    else:
+        return keydf.loc[id]["issilicon"]
 
 
+booltab = keydf[["n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7"]].applymap(
+    issiliconFromId
+)
+# %%
+def detectorjump(row):
+    issilicon = issiliconFromId(row.name)
+    data = [e for e in row if e is not None]
+    same = 0
+    diff = 0
+    for e in data:
+        if e == issilicon:
+            same += 1
+        else:
+            diff += 1
+    return (same, diff)
 
 
-#%%
-
-for var in ["x", "y", "type", "issilicon", "next"]:
-    keydf[var] = updateD[var]
+booltab["nsame"], booltab["ndiff"] = list(zip(*booltab.apply(detectorjump, axis=1)))
 
 # %%
 def recurkeys(a):
     return [e for e in a.keys() if "keys" in dir(a[e])]
 
 
-#%%
+# %%
 # Search for the elements witht the properties
 def getproprec(prop: str, iterd: dict):
     if prop in iterd:
@@ -57,9 +95,9 @@ def getproprec(prop: str, iterd: dict):
         return [getproprec(prop, iterd[key]) for key in recurkeys(iterd)]
 
 
-def fullflatten(l):
+def fullflatten(flist):
     flat_list = []
-    recurflat(l, flat_list)
+    recurflat(flist, flat_list)
     return flat_list
 
 
@@ -75,7 +113,7 @@ def getprop(prop: str, dx):
     return fullflatten(getproprec(prop, dx))
 
 
-#%%
+# %%
 propsL = ["issilicon", "type", "z"]
 detL = [8, 9, 10]
 fig, axs = plt.subplots(len(propsL), 1, figsize=(5, 4 * len(propsL)))
