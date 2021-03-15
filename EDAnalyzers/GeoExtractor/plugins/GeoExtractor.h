@@ -33,6 +33,7 @@ private:
   std::pair<DetId, float> findCellCloseToXYpos(DetId cellId, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
   DetId getstartcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
   DetId findNextCell(DetId cellId);
+  DetId findPreviousCell(DetId cellId);
   std::string printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
   CellHash getCellHashKeys(DetId &iterId);
   bool isSiliconDet(int ndet);

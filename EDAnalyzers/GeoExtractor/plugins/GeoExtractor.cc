@@ -256,8 +256,6 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   }
 }
 
-
-
 // ------------ method called once each job just before starting event loop  ------------
 void GeoExtractor::beginJob() {}
 
