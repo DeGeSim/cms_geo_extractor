@@ -30,7 +30,7 @@ private:
   //Stuff or seaching the members
 
   void assignZneighbors(std::vector<DetId> &v_validHGCalIds);
-  std::pair<DetId, float> findCellCloseToXYpos(DetId cellId, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
+  std::pair<DetId, float> findCellCloseToXYpos(DetId cellId, CellHash hash, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
   DetId getstartcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
   DetId findNextCell(DetId cellId);
   DetId findPreviousCell(DetId cellId);

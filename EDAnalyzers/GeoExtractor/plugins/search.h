@@ -18,7 +18,7 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
     Cell *cellptr = getCellptr(iterId);
     validateId(cellptr->globalid);
     cellptr->next = findNextCell(cellptr->globalid);
-    cellptr->previous = findPreviousCell(cellptr->previous);
+    cellptr->previous = findPreviousCell(cellptr->globalid);
   }
 }
 
@@ -26,8 +26,7 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
 // The the act lifting is done by the findCellCloseToXYpos
 DetId GeoExtractor::findNextCell(DetId cellId)
 {
-  LOG(DEBUG) << "Start findNextCell"
-             << "\n";
+  LOG(DEBUG) << "Start findNextCell\n";
   CellHash hash = getCellHashKeys(cellId);
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
   LOG(DEBUG) << "find cell for id" << cellId.rawId() << "\n";
@@ -43,17 +42,15 @@ DetId GeoExtractor::findNextCell(DetId cellId)
   {
     if (layerid < 28)
     {
-      LOG(DEBUG) << "A"
-                 << "\n";
-      return findCellCloseToXYpos(cellId, detectorid, subdetid, layerid + 1).first;
+      LOG(DEBUG) << "A\n";
+      return findCellCloseToXYpos(cellId, hash, detectorid, subdetid, layerid + 1).first;
     }
     // to the the next detector EE-> HSi
     else
     {
-      LOG(DEBUG) << "B"
-                 << "\n";
+      LOG(DEBUG) << "B\n";
       // TODO check if there are nodes in layer 1 of the HGCalSc
-      return findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, 1).first;
+      return findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, 1).first;
     }
   }
   if (detectorid == DetId::HGCalHSi || detectorid == DetId::HGCalHSc)
@@ -61,23 +58,20 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     // for layer <8 all cells we can just search in the Si part
     if (layerid < 8 && detectorid == DetId::HGCalHSi)
     {
-      LOG(DEBUG) << "C"
-                 << "\n";
-      return findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, layerid + 1).first;
+      LOG(DEBUG) << "C\n";
+      return findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1).first;
     }
     // return 0 in the last layer
     else if (layerid == 22)
     {
-      LOG(DEBUG) << "D"
-                 << "\n";
+      LOG(DEBUG) << "D\n";
       return DetId(0);
     }
     else
     {
-      LOG(DEBUG) << "E"
-                 << "\n";
-      auto [sicanid, deltasi] = findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, layerid + 1);
-      auto [sccanid, deltasc] = findCellCloseToXYpos(cellId, DetId::HGCalHSc, subdetid, layerid + 1);
+      LOG(DEBUG) << "E\n";
+      auto [sicanid, deltasi] = findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1);
+      auto [sccanid, deltasc] = findCellCloseToXYpos(cellId, hash, DetId::HGCalHSc, subdetid, layerid + 1);
       if (deltasi < deltasc)
       {
         return sicanid;
@@ -90,16 +84,14 @@ DetId GeoExtractor::findNextCell(DetId cellId)
   }
   // LOG(ERROR)  << hash << ""<<"\n"; //doenst work ?
   std::cout << hash;
-  LOG(ERROR) << "Wont find neighbor. This part should never be reached."
-             << "\n";
+  LOG(ERROR) << "Wont find neighbor. This part should never be reached.\n";
   exit(EXIT_FAILURE);
   return DetId(0);
 }
 
 DetId GeoExtractor::findPreviousCell(DetId cellId)
 {
-  LOG(DEBUG) << "Start findPreviousCell"
-             << "\n";
+  LOG(DEBUG) << "Start findPreviousCell\n";
   CellHash hash = getCellHashKeys(cellId);
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
   LOG(DEBUG) << "find cell for id" << cellId.rawId() << "\n";
@@ -116,16 +108,14 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
     //First layer as no previous cells, point to 0.
     if (layerid == 1)
     {
-      LOG(DEBUG) << "A"
-                 << "\n";
+      LOG(DEBUG) << "A\n";
       return DetId(0);
     }
     else
     {
-      LOG(DEBUG) << "B"
-                 << "\n";
+      LOG(DEBUG) << "B\n";
       // Get the cell with the least x,y distance in the n-1th layer of the EE.
-      return findCellCloseToXYpos(cellId, DetId::HGCalEE, subdetid, layerid - 1).first;
+      return findCellCloseToXYpos(cellId, hash, DetId::HGCalEE, subdetid, layerid - 1).first;
     }
   }
   if (detectorid == DetId::HGCalHSi || detectorid == DetId::HGCalHSc)
@@ -133,25 +123,22 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
     // from the frist layer in the hadronic part go back to the last layer in the EE
     if (layerid == 1)
     {
-      LOG(DEBUG) << "D"
-                 << "\n";
-      return findCellCloseToXYpos(cellId, DetId::HGCalEE, subdetid, 28).first;
+      LOG(DEBUG) << "D\n";
+      return findCellCloseToXYpos(cellId, hash, DetId::HGCalEE, subdetid, 28).first;
     }
     // HSc starts with layer 9, so for all cells from layer <10 we can just search in the Si part
     else if (layerid < 10)
     {
-      LOG(DEBUG) << "C"
-                 << "\n";
-      return findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, layerid - 1).first;
+      LOG(DEBUG) << "C\n";
+      return findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1).first;
     }
 
     // for layer > 10, both detectors need to be searched for the closest cells
     else
     {
-      LOG(DEBUG) << "E"
-                 << "\n";
-      auto [sicanid, deltasi] = findCellCloseToXYpos(cellId, DetId::HGCalHSi, subdetid, layerid - 1);
-      auto [sccanid, deltasc] = findCellCloseToXYpos(cellId, DetId::HGCalHSc, subdetid, layerid - 1);
+      LOG(DEBUG) << "E\n";
+      auto [sicanid, deltasi] = findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1);
+      auto [sccanid, deltasc] = findCellCloseToXYpos(cellId, hash, DetId::HGCalHSc, subdetid, layerid - 1);
       if (deltasi < deltasc)
       {
         return sicanid;
@@ -162,10 +149,9 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
       }
     }
   }
-  // LOG(ERROR)  << hash << ""<<"\n"; //doenst work ?
+  // LOG(ERROR)  << hash << "\n"; //doenst work ?
   std::cout << hash;
-  LOG(ERROR) << "Wont find neighbor. This part should never be reached."
-             << "\n";
+  LOG(ERROR) << "Wont find neighbor. This part should never be reached.\n";
   exit(EXIT_FAILURE);
   return DetId(0);
 }
@@ -173,37 +159,17 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
 // This is the function that does the search within the given detector/layer
 std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
     DetId originCellDetID,
+    CellHash hash,
     unsigned int targetdetectorid,
     unsigned int targetsubdetid,
     unsigned int targetlayerid)
 {
   LOG(DEBUG) << "Start findCellCloseToXYpos for" << originCellDetID.rawId() << "\n";
 
-  //Get xy from the origin cell
-  float x = recHitTools.getPosition(originCellDetID).x();
-  float y = recHitTools.getPosition(originCellDetID).y();
-  std::pair<int, int> targetwaferortileid;
-  std::pair<int, int> targetcellid;
+  std::pair<int, int> targetwaferortileid = std::get<3>(hash);
+  std::pair<int, int> targetcellid = std::get<4>(hash);
 
-  // get the position of the cell, that we are searching the neighbor for.
-  if (isSiliconDet(originCellDetID.det()))
-  {
-    LOG(DEBUG) << "findCellCloseToXYpos:SiliconPos"
-               << "\n";
-    targetwaferortileid = recHitTools.getWafer(originCellDetID);
-    targetcellid = recHitTools.getCell(originCellDetID);
-  }
-  else
-  {
-    LOG(DEBUG) << "findCellCloseToXYpos:Scintillator"
-               << "\n";
-    HGCScintillatorDetId scid = HGCScintillatorDetId(originCellDetID);
-    targetwaferortileid = scid.ietaphi();
-    targetcellid = std::make_pair(0, 0);
-  }
-
-  LOG(DEBUG) << "search from cell"
-             << "\n";
+  LOG(DEBUG) << "search from cell\n";
   LOG(DEBUG) << *getCellptr(originCellDetID) << "\n";
 
   // The cell that is the closest, to be replace by close cells
@@ -211,23 +177,23 @@ std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
   DetId closest_cellDetId = getstartcell(targetdetectorid, targetsubdetid, targetlayerid, targetwaferortileid, targetcellid);
   Cell *closest_cellptr = getCellptr(closest_cellDetId);
 
-  LOG(DEBUG) << "3: closest_cell"
-             << "\n";
+  LOG(DEBUG) << "3: closest_cell\n";
+  //Get xy from the origin cell
+  float x = recHitTools.getPosition(originCellDetID).x();
+  float y = recHitTools.getPosition(originCellDetID).y();
 
   float x_cur = closest_cellptr->x;
   float y_cur = closest_cellptr->y;
   float d_cur = (x_cur - x) * (x_cur - x) + (y_cur - y) * (y_cur - y);
   bool improvement = true;
-  LOG(DEBUG) << "3.5"
-             << "\n";
+  LOG(DEBUG) << "3.5\n";
   while (improvement)
   {
     improvement = false;
 
     for (DetId &neighbor : closest_cellptr->neighbors)
     {
-      LOG(DEBUG) << "    4"
-                 << "\n";
+      LOG(DEBUG) << "    4\n";
       Cell *nptr = getCellptr(neighbor);
       LOG(DEBUG) << "\t" << getCellHashKeys(neighbor) << "\n";
       LOG(DEBUG) << "\t" << *nptr << "\n";
@@ -245,8 +211,7 @@ std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
       }
     }
   }
-  LOG(DEBUG) << "no improvement, exiting"
-             << "\n";
+  LOG(DEBUG) << "no improvement, exiting\n";
   return std::make_pair(closest_cellptr->globalid, d_cur);
 }
 
@@ -289,8 +254,7 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
     //find the wafer, it may not exist in this layer, in this case search from the first in the list.
     if (layer.wafers.find(waferortileid) == layer.wafers.end())
     {
-      LOG(DEBUG) << "Cant find wafer, using first wafer."
-                 << "\n";
+      LOG(DEBUG) << "Cant find wafer, using first wafer.\n";
       waferortileid = layer.wafers.begin()->first;
     }
     Wafer &wafer = layer.wafers[waferortileid];
@@ -298,8 +262,7 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
     //Find the cell
     if (wafer.cells.find(cellid) == wafer.cells.end())
     {
-      LOG(DEBUG) << "Cant find cell, using first."
-                 << "\n";
+      LOG(DEBUG) << "Cant find cell, using first.\n";
       cellid = wafer.cells.begin()->first;
     }
     Cell &cell = wafer.cells[cellid];
@@ -327,8 +290,7 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
     }
     return layer.tiles[waferortileid].globalid;
   }
-  LOG(ERROR) << "Dead End1"
-             << "\n";
+  LOG(ERROR) << "Dead End1\n";
   exit(EXIT_FAILURE);
   return DetId(0);
 }
