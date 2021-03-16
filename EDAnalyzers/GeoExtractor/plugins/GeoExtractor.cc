@@ -231,6 +231,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->celltype.push_back(cellptr->type);
     treeOutput->issilicon.push_back(cellptr->issilicon);
     treeOutput->next.push_back(cellptr->next);
+    treeOutput->previous.push_back(cellptr->next);
     treeOutput->nneighbors.push_back((int)cellptr->neighbors.size());
 
 
