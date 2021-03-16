@@ -26,34 +26,41 @@ private:
   // output tree
   TreeOutputInfo::TreeOutput *treeOutput;
 
-  std::vector<DetId> filterCellIds(const std::vector<DetId> v_allCellIds);
-  //Stuff or seaching the members
-
-  void assignZneighbors(std::vector<DetId> &v_validHGCalIds);
-  std::pair<DetId, float> findCellCloseToXYpos(DetId cellId, CellHash hash, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
-  DetId getstartcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
-  DetId findNextCell(DetId cellId);
-  DetId findPreviousCell(DetId cellId);
-  std::string printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
-  CellHash getCellHashKeys(DetId &iterId);
-  bool isSiliconDet(int ndet);
-
-  void instanciateMapForCell(DetId &iterId);
-  Cell *getCellptr(DetId &iterId);
-  bool validId(DetId id);
-  void validateId(DetId id);
-
   //The map, that contains the detector structure
   //Det -> SubDet -> Layer -> Wafer -> Cell
   DetColl detcol;
+  //function to the data strution containing the detector/subdetector/wafers/cells
+  void instanciateMapForCell(DetId &iterId);
+
+  //vector to save the ids
+  std::vector<DetId> v_validHGCalIds;
+  //function to filter for cells in the HGCAL
+  std::vector<DetId> filterCellIds(const std::vector<DetId> v_allCellIds);
+
+  //Funtions for searching the neighbors in z direction
+  void assignZneighbors(std::vector<DetId> &v_validHGCalIds);
+  DetId findNextCell(DetId cellId);
+  DetId findPreviousCell(DetId cellId);
+  std::pair<DetId, float> searchInLayer(DetId cellId, CellHash hash, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
+  DetId getstartcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
+
+  void fixNeighborsBoundery(std::vector<DetId> &v_validHGCalIds);
+  DetId findGapNeighbors(Cell *cellptr);
+
+  //Get the det/subdet/wafer/cell id as a tuple
+  CellHash getCellHashKeys(DetId &iterId);
+
+  std::string printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
+
+  Cell *getCellptr(DetId &iterId);
+  bool validId(DetId id);
+  void validateId(DetId id);
+  bool isSiliconDet(int ndet);
 
   //vector with the numbers of the detector part of the hgcal
   std::vector<int> v_HGCalDets;
-
   //map that saves which cell are rejected in which step
   std::map<int, std::map<std::string, int> > m_rej;
-  //vector to save the ids
-  std::vector<DetId> v_validHGCalIds;
 };
 
 GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
