@@ -23,7 +23,7 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
 }
 
 // This function decices in which layer in which detector(s) to search for the neigbor.
-// The the act lifting is done by the findCellCloseToXYpos
+// The the act lifting is done by the searchInLayer
 DetId GeoExtractor::findNextCell(DetId cellId)
 {
   LOG(DEBUG) << "Start findNextCell\n";
@@ -43,14 +43,14 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     if (layerid < 28)
     {
       LOG(DEBUG) << "A\n";
-      return findCellCloseToXYpos(cellId, hash, detectorid, subdetid, layerid + 1).first;
+      return searchInLayer(cellId, hash, detectorid, subdetid, layerid + 1).first;
     }
     // to the the next detector EE-> HSi
     else
     {
       LOG(DEBUG) << "B\n";
       // TODO check if there are nodes in layer 1 of the HGCalSc
-      return findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, 1).first;
+      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, 1).first;
     }
   }
   if (detectorid == DetId::HGCalHSi || detectorid == DetId::HGCalHSc)
@@ -59,7 +59,7 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     if (layerid < 8 && detectorid == DetId::HGCalHSi)
     {
       LOG(DEBUG) << "C\n";
-      return findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1).first;
+      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1).first;
     }
     // return 0 in the last layer
     else if (layerid == 22)
@@ -70,8 +70,8 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     else
     {
       LOG(DEBUG) << "E\n";
-      auto [sicanid, deltasi] = findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1);
-      auto [sccanid, deltasc] = findCellCloseToXYpos(cellId, hash, DetId::HGCalHSc, subdetid, layerid + 1);
+      auto [sicanid, deltasi] = searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1);
+      auto [sccanid, deltasc] = searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid + 1);
       if (deltasi < deltasc)
       {
         return sicanid;
@@ -115,7 +115,7 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
     {
       LOG(DEBUG) << "B\n";
       // Get the cell with the least x,y distance in the n-1th layer of the EE.
-      return findCellCloseToXYpos(cellId, hash, DetId::HGCalEE, subdetid, layerid - 1).first;
+      return searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, layerid - 1).first;
     }
   }
   if (detectorid == DetId::HGCalHSi || detectorid == DetId::HGCalHSc)
@@ -124,21 +124,21 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
     if (layerid == 1)
     {
       LOG(DEBUG) << "D\n";
-      return findCellCloseToXYpos(cellId, hash, DetId::HGCalEE, subdetid, 28).first;
+      return searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, 28).first;
     }
     // HSc starts with layer 9, so for all cells from layer <10 we can just search in the Si part
     else if (layerid < 10)
     {
       LOG(DEBUG) << "C\n";
-      return findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1).first;
+      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1).first;
     }
 
     // for layer > 10, both detectors need to be searched for the closest cells
     else
     {
       LOG(DEBUG) << "E\n";
-      auto [sicanid, deltasi] = findCellCloseToXYpos(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1);
-      auto [sccanid, deltasc] = findCellCloseToXYpos(cellId, hash, DetId::HGCalHSc, subdetid, layerid - 1);
+      auto [sicanid, deltasi] = searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1);
+      auto [sccanid, deltasc] = searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid - 1);
       if (deltasi < deltasc)
       {
         return sicanid;
@@ -157,14 +157,14 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
 }
 
 // This is the function that does the search within the given detector/layer
-std::pair<DetId, float> GeoExtractor::findCellCloseToXYpos(
+std::pair<DetId, float> GeoExtractor::searchInLayer(
     DetId originCellDetID,
     CellHash hash,
     unsigned int targetdetectorid,
     unsigned int targetsubdetid,
     unsigned int targetlayerid)
 {
-  LOG(DEBUG) << "Start findCellCloseToXYpos for" << originCellDetID.rawId() << "\n";
+  LOG(DEBUG) << "Start searchInLayer for" << originCellDetID.rawId() << "\n";
 
   std::pair<int, int> targetwaferortileid = std::get<3>(hash);
   std::pair<int, int> targetcellid = std::get<4>(hash);
