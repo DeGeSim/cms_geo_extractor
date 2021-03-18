@@ -1,7 +1,7 @@
 #pragma once
 
 // wraps findNextCell and loops over the ids
-void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
+void GeoExtractor::assignZNeighbors(std::vector<DetId> &v_validHGCalIds)
 {
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
@@ -15,7 +15,7 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
     {
       LOG(DEBUG) << "Assinging z neighbors " << i << "\n";
     }
-    Cell *cellptr = getCellptr(iterId);
+    Cell *cellptr = getCellPtr(iterId);
     validateId(cellptr->globalid);
     cellptr->next = findNextCell(cellptr->globalid);
     cellptr->previous = findPreviousCell(cellptr->globalid);
@@ -27,10 +27,10 @@ void GeoExtractor::assignZneighbors(std::vector<DetId> &v_validHGCalIds)
 DetId GeoExtractor::findNextCell(DetId cellId)
 {
   LOG(DEBUG) << "Start findNextCell\n";
-  CellHash hash = getCellHashKeys(cellId);
+  CellHash hash = getCellHash(cellId);
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
   LOG(DEBUG) << "find cell for id" << cellId.rawId() << "\n";
-  LOG(DEBUG) << getCellHashKeys(cellId) << "\n";
+  LOG(DEBUG) << getCellHash(cellId) << "\n";
   //
   // HGCalEE = 8, layer 1-28
   // HGCalHSi = 9, layer 1-22
@@ -92,7 +92,7 @@ DetId GeoExtractor::findNextCell(DetId cellId)
 DetId GeoExtractor::findPreviousCell(DetId cellId)
 {
   LOG(DEBUG) << "Start findPreviousCell\n";
-  CellHash hash = getCellHashKeys(cellId);
+  CellHash hash = getCellHash(cellId);
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
   LOG(DEBUG) << "find cell for id" << cellId.rawId() << "\n";
   LOG(DEBUG) << hash << "\n";
@@ -162,20 +162,37 @@ std::pair<DetId, float> GeoExtractor::searchInLayer(
     CellHash hash,
     unsigned int targetdetectorid,
     unsigned int targetsubdetid,
-    unsigned int targetlayerid)
+    unsigned int targetlayerid,
+    bool avoidNeighbors)
 {
   LOG(DEBUG) << "Start searchInLayer for" << originCellDetID.rawId() << "\n";
 
   std::pair<int, int> targetwaferortileid = std::get<3>(hash);
   std::pair<int, int> targetcellid = std::get<4>(hash);
 
+  Cell *originCellptr = getCellPtr(originCellDetID);
   LOG(DEBUG) << "search from cell\n";
-  LOG(DEBUG) << *getCellptr(originCellDetID) << "\n";
+  LOG(DEBUG) << *originCellptr << "\n";
 
   // The cell that is the closest, to be replace by close cells
   // if getcell can't find the wafer / cell it starts with the (0,0) coordinates
-  DetId closest_cellDetId = getstartcell(targetdetectorid, targetsubdetid, targetlayerid, targetwaferortileid, targetcellid);
-  Cell *closest_cellptr = getCellptr(closest_cellDetId);
+  CellHash targethash = std::make_tuple(targetdetectorid, targetsubdetid, targetlayerid, targetwaferortileid, targetcellid);
+  std::set<DetId> s_neighbors(originCellptr->neighbors.begin(), originCellptr->neighbors.end());
+  DetId closest_cellDetId;
+  if (avoidNeighbors)
+  {
+    closest_cellDetId = getStartCell(targethash, s_neighbors);
+  }
+  else
+  {
+    // Pass an empty set of Ids for the function to avoid.
+    s_neighbors.clear();
+    closest_cellDetId = getStartCell(targethash, s_neighbors);
+  }
+
+  //For the gapfixing:
+  // If the startcell is already in the neighbors, then start at 00
+  Cell *closest_cellptr = getCellPtr(closest_cellDetId);
 
   LOG(DEBUG) << "3: closest_cell\n";
   //Get xy from the origin cell
@@ -193,9 +210,16 @@ std::pair<DetId, float> GeoExtractor::searchInLayer(
 
     for (DetId &neighbor : closest_cellptr->neighbors)
     {
+      // if avoidNeighbors, then skip the entries that are already neighbors
+      // this vector should be replaceed by a set...
+      if (avoidNeighbors && std::find(originCellptr->neighbors.begin(), originCellptr->neighbors.end(), neighbor) != originCellptr->neighbors.end())
+      {
+        continue;
+      }
+
       LOG(DEBUG) << "    4\n";
-      Cell *nptr = getCellptr(neighbor);
-      LOG(DEBUG) << "\t" << getCellHashKeys(neighbor) << "\n";
+      Cell *nptr = getCellPtr(neighbor);
+      LOG(DEBUG) << "\t" << getCellHash(neighbor) << "\n";
       LOG(DEBUG) << "\t" << *nptr << "\n";
       float xn = nptr->x;
       float yn = nptr->y;
@@ -215,28 +239,29 @@ std::pair<DetId, float> GeoExtractor::searchInLayer(
   return std::make_pair(closest_cellptr->globalid, d_cur);
 }
 
-DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferortileid, std::pair<int, int> cellid)
+DetId GeoExtractor::getStartCell(CellHash hash, std::set<DetId> s_avoid)
 {
+  auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
   if (detcol.detectors.find(detectorid) == detcol.detectors.end())
   {
-    LOG(ERROR) << "No such detector:\n"
-               << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+    LOG(ERROR) << "No such detector:\n";
+    LOG(ERROR) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
     exit(EXIT_FAILURE);
   }
   Det &detector = detcol.detectors[detectorid];
 
   if (detector.subdetectors.find(subdetid) == detector.subdetectors.end())
   {
-    LOG(ERROR) << "No such subdetector:\n"
-               << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+    LOG(ERROR) << "No such subdetector:\n";
+    LOG(ERROR) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
     exit(EXIT_FAILURE);
   }
   Subdet &subdet = detector.subdetectors[subdetid];
 
   if (subdet.layers.find(layerid) == subdet.layers.end())
   {
-    LOG(ERROR) << "No such layer:\n"
-               << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+    LOG(ERROR) << "No such layer:\n";
+    LOG(ERROR) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
     exit(EXIT_FAILURE);
   }
   Layer &layer = subdet.layers[layerid];
@@ -246,8 +271,8 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
   {
     if (layer.wafers.begin() == layer.wafers.end())
     {
-      LOG(ERROR) << "Wafer is empty:\n"
-                 << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+      LOG(ERROR) << "Wafer is empty:\n";
+      LOG(ERROR) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
       exit(EXIT_FAILURE);
     }
 
@@ -265,23 +290,51 @@ DetId GeoExtractor::getstartcell(unsigned int detectorid, unsigned int subdetid,
       LOG(DEBUG) << "Cant find cell, using first.\n";
       cellid = wafer.cells.begin()->first;
     }
-    Cell &cell = wafer.cells[cellid];
+    Cell *cellptr = &wafer.cells[cellid];
 
-    LOG(DEBUG) << "search: " << detectorid << " " << subdetid << " " << layerid << " " << waferortileid << " " << cellid << "\n";
+    //Now, make sure that the starting point is a cell that
+    //This part is only relevant for fixing the gaps between HSi and HSc
+    if (!s_avoid.empty())
+    {
+      std::vector<DetId>::iterator curNeighborIdPtr = cellptr->neighbors.begin();
+      //while the id is in the set of ids that are to be avoided...
+      while (s_avoid.find(cellptr->globalid) != s_avoid.end())
+      {
+        //avoid changing from HSc to HSi and vice versa
+        if (curNeighborIdPtr->det() == detectorid)
+        {
+          cellptr = getCellPtr(*curNeighborIdPtr);
+          curNeighborIdPtr = cellptr->neighbors.begin();
+        }
+        else
+        {
+          std::advance(curNeighborIdPtr, 1);
+          if (curNeighborIdPtr == cellptr->neighbors.end())
+          {
+            LOG(ERROR) << "Could find neighbor within detetector.\n";
+            exit(EXIT_FAILURE);
+          }
+        }
+      }
+      cellptr = getCellPtr(*curNeighborIdPtr);
+    }
 
-    LOG(DEBUG) << cell << "\n";
-    HGCSiliconDetId siid = HGCSiliconDetId(cell.globalid);
-    LOG(DEBUG) << "startcell: "
-               << " " << cell.globalid.det() << " " << cell.globalid.subdetId() << " " << recHitTools.getLayer(cell.globalid) << " " << siid.waferUV() << " " << siid.cellUV() << "\n";
+    LOG(DEBUG) << "search: \n";
+    LOG(DEBUG) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
 
-    return cell.globalid;
+    LOG(DEBUG) << *cellptr << "\n";
+    HGCSiliconDetId siid = HGCSiliconDetId(cellptr->globalid);
+    LOG(DEBUG) << "startcell: \n";
+    LOG(DEBUG) << printCell(cellptr->globalid.det(), cellptr->globalid.subdetId(), recHitTools.getLayer(cellptr->globalid), siid.waferUV(), siid.cellUV());
+
+    return cellptr->globalid;
   }
   else
   {
     if (layer.tiles.begin() == layer.tiles.end())
     {
-      LOG(ERROR) << "Tiles is empty\n"
-                 << printcell(detectorid, subdetid, layerid, waferortileid, cellid);
+      LOG(ERROR) << "Tiles is empty\n";
+      LOG(ERROR) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
       exit(EXIT_FAILURE);
     }
     if (layer.tiles.find(waferortileid) == layer.tiles.end())

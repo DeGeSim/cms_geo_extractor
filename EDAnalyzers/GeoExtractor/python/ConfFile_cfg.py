@@ -1,5 +1,6 @@
 import os
 import FWCore.ParameterSet.Config as cms
+import yaml
 
 processName = "Demo"
 
@@ -32,7 +33,8 @@ process.load("Configuration.Geometry.GeometryExtended2026D49_cff")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 # To adjust the loglevel, change it in the GeoExtractor.cc and recompile.
 
-process.options = cms.untracked.PSet(wantSummary=cms.untracked.bool(True))
+process.options = cms.untracked.PSet(wantSummary=cms.untracked.bool(False))
+
 process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(1))
 
 process.source = cms.Source("EmptySource")
@@ -40,7 +42,20 @@ process.TFileService = cms.Service(
     "TFileService", fileName=cms.string("output/DetIdLUT.root")
 )
 
-process.analyzer = cms.EDAnalyzer("GeoExtractor")
+with open("settings.yaml", "r") as f:
+    settingsD = yaml.load(f,Loader=yaml.SafeLoader)
+
+for key in settingsD:
+    if type(settingsD[key]) is int:
+        settingsD[key] = cms.int32(settingsD[key])
+    if type(settingsD[key]) is float:
+        settingsD[key] = cms.double(settingsD[key])
+    if type(settingsD[key]) is str:
+        settingsD[key] = cms.string(settingsD[key])
+
+
+process.analyzer = cms.EDAnalyzer("GeoExtractor", **settingsD)
+
 process.p = cms.Path(process.analyzer)
 
 process.schedule = cms.Schedule()

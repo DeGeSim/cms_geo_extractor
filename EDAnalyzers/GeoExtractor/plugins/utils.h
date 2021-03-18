@@ -1,8 +1,8 @@
 #pragma once
 
-Cell *GeoExtractor::getCellptr(DetId &iterId)
+Cell *GeoExtractor::getCellPtr(DetId &iterId)
 {
-  auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHashKeys(iterId);
+  auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(iterId);
   // Setup the detector
   Det &detector = detcol.detectors[detectorid];
 
@@ -27,7 +27,7 @@ Cell *GeoExtractor::getCellptr(DetId &iterId)
   return cellptr;
 }
 
-CellHash GeoExtractor::getCellHashKeys(DetId &iterId)
+CellHash GeoExtractor::getCellHash(DetId &iterId)
 {
   // Setup the detector
   unsigned int detectorid = iterId.det();
@@ -64,7 +64,7 @@ CellHash GeoExtractor::getCellHashKeys(DetId &iterId)
 
 // this method is needed even though we can cout << cell
 // because we need to print out cells that dont exitst.
-std::string GeoExtractor::printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferid, std::pair<int, int> cellid)
+std::string GeoExtractor::printCell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferid, std::pair<int, int> cellid)
 {
   std::ostringstream stringStream;
   stringStream << " Det " << detectorid;

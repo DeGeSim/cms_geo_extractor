@@ -67,7 +67,7 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
 
 bool GeoExtractor::validId(DetId id)
 {
-  auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHashKeys(id);
+  auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(id);
   // unsigned int detectorid = id.det();
   // unsigned int subdetid = id.subdetId();
   // unsigned int layerid = recHitTools.getLayer(id);
@@ -112,7 +112,7 @@ void GeoExtractor::validateId(DetId id)
   if (!validId(id))
   {
     LOG(DEBUG) << "Invalid cell Id:" << id.rawId()<<"\n";
-    LOG(DEBUG) << *getCellptr(id)<<"\n";
+    LOG(DEBUG) << *getCellPtr(id)<<"\n";
     throw std::invalid_argument("Invalid Cell");
   }
 }

@@ -38,21 +38,21 @@ private:
   std::vector<DetId> filterCellIds(const std::vector<DetId> v_allCellIds);
 
   //Funtions for searching the neighbors in z direction
-  void assignZneighbors(std::vector<DetId> &v_validHGCalIds);
+  void assignZNeighbors(std::vector<DetId> &v_validHGCalIds);
   DetId findNextCell(DetId cellId);
   DetId findPreviousCell(DetId cellId);
-  std::pair<DetId, float> searchInLayer(DetId cellId, CellHash hash, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
-  DetId getstartcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
+  std::pair<DetId, float> searchInLayer(DetId cellId, CellHash hash, unsigned int detectorid, unsigned int subdetid, unsigned int layerid, bool avoidNeighbors = 0);
+  DetId getStartCell(CellHash hash,std::set<DetId> s_avoid);
 
   void fixNeighborsBoundery(std::vector<DetId> &v_validHGCalIds);
   DetId findGapNeighbors(Cell *cellptr);
 
   //Get the det/subdet/wafer/cell id as a tuple
-  CellHash getCellHashKeys(DetId &iterId);
+  CellHash getCellHash(DetId &iterId);
 
-  std::string printcell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
+  std::string printCell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
 
-  Cell *getCellptr(DetId &iterId);
+  Cell *getCellPtr(DetId &iterId);
   bool validId(DetId id);
   void validateId(DetId id);
   bool isSiliconDet(int ndet);
@@ -61,12 +61,19 @@ private:
   std::vector<int> v_HGCalDets;
   //map that saves which cell are rejected in which step
   std::map<int, std::map<std::string, int> > m_rej;
+
+  //Variables for the parameters to be passed
+  double maxDeltaHScHSiGap;
 };
 
 GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
-{
+{ 
+  //
+  maxDeltaHScHSiGap = iConfig.getParameter<double>("maxDeltaHScHSiGap");
+
   usesResource("TFileService");
   treeOutput = new TreeOutputInfo::TreeOutput("tree", fs);
+
   m_topo[DetId::HGCalEE];
   m_topo[DetId::HGCalHSi];
   m_topo[DetId::HGCalHSc];
@@ -76,8 +83,26 @@ GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
   v_HGCalDets.push_back(DetId::HGCalHSc);
 
   //set the loglevel here DEBUG < INFO < WARN < ERROR
-  LOGCFG.headers = false;
-  LOGCFG.level = INFO;
+  enum typelog internalDebugLevel = static_cast<typelog>(iConfig.getParameter<int>("internalDebugLevel"));
+  std::cout << "Starting with loglevel" << internalDebugLevel;
+  LOGCFG.level = internalDebugLevel;
+  // switch (internalDebugLevel)
+  // {
+  // case (int)DEBUG:
+  //   LOGCFG.level = DEBUG;
+  // case (int)INFO:
+  //   LOGCFG.level = INFO;
+  // case (int)WARN:
+  //   LOGCFG.level = WARN;
+  // case (int)ERROR:
+  //   LOGCFG.level = ERROR;
+  // default:
+  //   std::cout << internalDebugLevel;
+  //   LOGCFG.level = DEBUG;
+  //   LOG(ERROR) << "No such loglevel.\n";
+  //   exit(EXIT_FAILURE);
+  // }
+  LOGCFG.headers = true;
 }
 GeoExtractor::~GeoExtractor()
 {

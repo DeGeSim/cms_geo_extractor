@@ -91,6 +91,7 @@ structlog LOGCFG = {};
 #include "utils.h"
 #include "filters.h"
 #include "search.h"
+#include "gapfixer.h"
 //
 // member functions
 //
@@ -183,8 +184,8 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
       exit(EXIT_FAILURE);
     }
     instanciateMapForCell(iterId);
-    Cell *cellptr = getCellptr(iterId);
-    auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHashKeys(iterId);
+    Cell *cellptr = getCellPtr(iterId);
+    auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(iterId);
     cellptr->globalid = iterId;
     cellptr->x = recHitTools.getPosition(iterId).x();
     cellptr->y = recHitTools.getPosition(iterId).y();
@@ -198,7 +199,8 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     {
       HGCScintillatorDetId scid = HGCScintillatorDetId(iterId);
 
-      cellptr->type = scid.type();
+      // cellptr->type = scid.type();
+      cellptr->type = scid.sipm();
       cellptr->issilicon = false;
     }
     // only assign neighbors with valid ids
@@ -220,12 +222,12 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     n_printed++;
   }
   LOG(INFO) << "Assing the Z neighbors."<<"\n";
-  assignZneighbors(v_validHGCalIds);
+  assignZNeighbors(v_validHGCalIds);
 
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     DetId iterId = v_validHGCalIds[i];
-    Cell * cellptr = getCellptr(iterId);
+    Cell * cellptr = getCellPtr(iterId);
     treeOutput->x.push_back(cellptr->x);
     treeOutput->y.push_back(cellptr->y);
     treeOutput->celltype.push_back(cellptr->type);
@@ -256,6 +258,9 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
       
     }
   }
+  LOGCFG.level = DEBUG;
+  LOG(INFO)<<"Start fixing the bounderies.\n";
+  fixNeighborsBoundery(v_validHGCalIds);
 }
 
 // ------------ method called once each job just before starting event loop  ------------
