@@ -12,3 +12,4 @@ venv
 output
 
 .ipynb_checkpoints
+*.pdf
