@@ -6,10 +6,68 @@ import pickle
 import numpy as np
 import pandas as pd
 import awkward as ak
+
+# %%
+import matplotlib as mpl
+
+# mpl.use("pgf")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 
+# plt.rcParams.update({
+#     "text.usetex": True,
+#     "pgf.texsystem": "lualatex",
+#     "pgf.rcfonts": False,
+#     "font.family": "serif",
+#     "font.serif": [],
+#     "font.sans-serif": [],
+#     "font.monospace": [],
+#     # "figure.figsize": [default_width, default_width * default_ratsio],
+#     "pgf.preamble": "\\usepackage{mymplsetup}"
+# })
+# plt.rcParams = plt.rcParamsDefault
+
+
+# %%
+rf = uproot.open("output/DetIdLUT.root")
+arr = rf["analyzer/tree"].arrays()
+keydf = ak.to_pandas(arr[0])
+keydf = keydf.set_index("globalid")
+keydf.head()
+# %%
+# Debug code to see the if the arrays are filled correctly
+index = [
+    "globalid",
+    "detectorid",
+    "subdetid",
+    "layerid",
+    "waferortileid.first",
+    "waferortileid.second",
+    "cellid.first",
+    "cellid.second",
+    "x",
+    "y",
+    "celltype",
+    "issilicon",
+    "next",
+    "previous",
+    "nneighbors",
+    "ngapneighbors",
+    "n0",
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n5",
+    "n6",
+    "n7",
+]
+for key in keydf.columns:
+    foo = ak.to_pandas(arr[0][key])
+    print(key, foo.shape)
+
+# %%
 fngeopic = "output/geometry.pickle"
 if os.path.isfile(fngeopic):
     with open(fngeopic, "rb") as f:
@@ -21,96 +79,105 @@ else:
         pickle.dump(geoD, f)
 
 # %%
-rf = uproot.open("output/DetIdLUT.root")
-arr = rf["analyzer/tree"].arrays()
-keydf = ak.to_pandas(arr[0])
-keydf = keydf.set_index("globalid")
-
+# # Types of the detector cells
+# sns.catplot(
+#     x="celltype",
+#     data=keydf,
+#     kind="count",
+#     hue="detectorid",
+# )
+# plt.tight_layout()
+# plt.savefig("CellTypes.pdf")
+# # %%
+# # Number of neighbors
+# ax = sns.catplot(
+#     x="layerid",
+#     data=keydf,
+#     kind="count",
+#     hue="detectorid",
+#     legend_out=True,
+#     height=4,
+#     aspect=2.5,
+# )
+# locs, labels = plt.xticks()
+# plt.xticks(locs[::3], labels[::3])
+# plt.savefig("CellsPerLayer.pdf")
 # %%
-def getcellfromrow(row):
-    return geoD[row["detectorid"]][row["layerid"]][
-        (row["waferortileid.first"], row["waferortileid.second"])
-    ][(row["cellid.first"], row["cellid.second"])]
+# sns.color_palette("tab10")
+# sns.set()
+# fig , axes = plt.subplots(4,7,figsize=(35, 20),sharex=True,squeeze=True)
+# for i in range(len(axes)):
+#     for j in range(len(axes[0])):
+#         layerid=i*6+j+1
+#         if layerid>=23:
+#             continue
+#         dfsel=keydf[(keydf["layerid"]==layerid) & (keydf["detectorid"]==8)]
+#         print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
+#         sns.histplot(
+#             x="nneighbors",
+#             data=dfsel,
+#             hue="detectorid",
+#             ax=axes[i][j]
+#         )
+#         axes[i][j].set_title(f"layer {layerid}")
+#         axes[i][j].set_yscale('log')
+# plt.title("Number of Neighbors per Cell")
+# plt.yscale('log')
+# plt.savefig("neighborsHist8.pdf")
+# # %%
 
 
+# plt.cla()
+# plt.clf()
+# plt.close()
+
+# sns.color_palette("tab10")
+# sns.set()
+# fig , axes = plt.subplots(4,7,figsize=(35, 20),sharex=True,squeeze=True)
+# for i in range(len(axes)):
+#     for j in range(len(axes[0])):
+#         layerid=i*6+j+1
+#         if layerid>=23:
+#             continue
+#         dfsel=keydf[(keydf["layerid"]==layerid) & (keydf["detectorid"]!=8)]
+#         print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
+#         sns.histplot(
+#             x="nneighbors",
+#             data=dfsel,
+#             hue="detectorid",
+#             ax=axes[i][j]
+#         )
+#         axes[i][j].set_title(f"layer {layerid}")
+#         axes[i][j].set_yscale('log')
+# plt.title("Number of Neighbors per Cell")
+# plt.yscale('log')
+# plt.savefig("neighborsHist.pdf")
 # %%
-# Cells per detetor
-sns.catplot(x="detectorid", data=keydf, kind="count")
 
-# Types of the detector cells
-sns.catplot(x="type", data=keydf, kind="count", hue="detectorid")
-# %%
+plt.cla()
+plt.clf()
+plt.close()
 
-# Check how frequent the neigbors are
-ids, counts = np.unique(keydf["next"], return_counts=True)
-ids, counts = list(ids), list(counts)
-
-countsL = [(i, c) for i, c in zip(ids, counts) if i != 0 and c != 1]
-plt.hist(list(zip(*countsL))[1])
-
-
-# %%
-# Number of cells per player
-d8df = keydf[keydf["detectorid"] == 8]
-d8df["layerid"].value_counts().plot(kind="bar")
-# %%
-
-def issiliconFromId(id):
-    if id == 0:
-        return None
-    else:
-        return keydf.loc[id]["issilicon"]
-
-
-booltab = keydf[["n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7"]].applymap(
-    issiliconFromId
-)
-# %%
-def detectorjump(row):
-    issilicon = issiliconFromId(row.name)
-    data = [e for e in row if e is not None]
-    same = 0
-    diff = 0
-    for e in data:
-        if e == issilicon:
-            same += 1
-        else:
-            diff += 1
-    return (same, diff)
-
-
-booltab["nsame"], booltab["ndiff"] = list(zip(*booltab.apply(detectorjump, axis=1)))
-
-# %%
-def recurkeys(a):
-    return [e for e in a.keys() if "keys" in dir(a[e])]
-
-
-# %%
-# Search for the elements witht the properties
-def getproprec(prop: str, iterd: dict):
-    if prop in iterd:
-        return iterd[prop]
-    else:
-        return [getproprec(prop, iterd[key]) for key in recurkeys(iterd)]
-
-
-def fullflatten(flist):
-    flat_list = []
-    recurflat(flist, flat_list)
-    return flat_list
-
-
-def recurflat(l, flat_list):
-    for element in l:
-        if type(element) == list:
-            recurflat(element, flat_list)
-        else:
-            flat_list.append(element)
-
-
-def getprop(prop: str, dx):
-    return fullflatten(getproprec(prop, dx))
+sns.color_palette("tab10")
+sns.set()
+fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, squeeze=True)
+for i in range(len(axes)):
+    for j in range(len(axes[0])):
+        layerid = i * 6 + j + 1
+        if layerid >= 23:
+            continue
+        dfsel = keydf[
+            (keydf["layerid"] == layerid)
+            & (keydf["detectorid"] != 8)
+            & (keydf["ngapneighbors"] != 0)
+        ]
+        print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
+        sns.histplot(x="ngapneighbors", data=dfsel, hue="detectorid", ax=axes[i][j])
+        axes[i][j].set_title(f"layer {layerid}")
+        # axes[i][j].set_yscale("log")
+plt.title("Number of Neighbors per Cell")
+# plt.yscale("log")
+plt.savefig("gapneighbors.pdf")
 
 
 # %%
