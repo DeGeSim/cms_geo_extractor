@@ -36,7 +36,20 @@ public:
   DetId globalid;
   DetId next;
   DetId previous;
-  std::vector<DetId> neighbors;
+  std::set<DetId> neighbors;
+  std::set<DetId> gapneighbors;
+  std::set<DetId> allneighbors;
+
+  std::set<DetId> getAllNeighbors()
+  {
+    if (neighbors.size() + gapneighbors.size() != allneighbors.size())
+    {
+      allneighbors = neighbors;
+      allneighbors.insert(gapneighbors.begin(), gapneighbors.end());
+    }
+    return allneighbors;
+  }
+
   void printmembers(std::ofstream &outfile, int indentlevel)
   {
     outfile << "issilicon: " << issilicon << "\n";
@@ -51,35 +64,36 @@ public:
   void printmap(std::ofstream &outfile, int indentlevel = 0)
   {
     outfile << tabs(indentlevel) << "neighbors: [";
-    for (DetId const &e : neighbors)
+    for (DetId e : getAllNeighbors())
     {
       outfile << e.rawId();
-      if (e != neighbors[neighbors.size() - 1])
+      if (e != *allneighbors.end())
       {
         outfile << ", ";
       }
     }
     outfile << "]\n";
   }
-  friend std::ostream &operator<<(std::ostream &os, const Cell &c)
-  {
-    os << "Cell {";
-    os << "issilicon: " << c.issilicon << ", ";
-    os << "type: " << c.type << ", ";
-    os << "globalid: " << c.globalid.rawId() << ", ";
-    os << "x: " << c.x << ", ";
-    os << "y: " << c.y << ", ";
-    os << "next: " << c.next.rawId() << ", ";
-    os << "previous: " << c.previous.rawId() << ", ";
-    os << "neighbors: [";
-    for (auto &val : c.neighbors)
-    {
-      os << val.rawId() << ", ";
-    }
-    os << "]}";
-    return os;
-  }
 };
+std::ostream &operator<<(std::ostream &os, Cell &c)
+{
+  os << "Cell {";
+  os << "issilicon: " << c.issilicon << ", ";
+  os << "type: " << c.type << ", ";
+  os << "globalid: " << c.globalid.rawId() << ", ";
+  os << "x: " << c.x << ", ";
+  os << "y: " << c.y << ", ";
+  os << "next: " << c.next.rawId() << ", ";
+  os << "previous: " << c.previous.rawId() << ", ";
+  os << "neighbors: [";
+
+  for (DetId val : c.getAllNeighbors())
+  {
+    os << val.rawId() << ", ";
+  }
+  os << "]}";
+  return os;
+}
 
 class Wafer : public yamlwo
 {
@@ -96,7 +110,7 @@ public:
       if (firstelement)
       {
         outfile << "? !!python/tuple [" << key.first << ", " << key.second << "]\n";
-        firstelement=false;
+        firstelement = false;
       }
       else
       {

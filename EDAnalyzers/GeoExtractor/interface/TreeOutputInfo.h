@@ -1,20 +1,7 @@
 #ifndef TreeOutputInfo_H
 #define TreeOutputInfo_H 1
 
-// #include <TH1F.h>
-// #include <TH2F.h>
-// #include <TMatrixD.h>
-// #include <TROOT.h>
 #include <TTree.h>
-// #include <TVectorD.h>
-// #include <stdlib.h>
-
-// #include <iostream>
-// #include <map>
-// #include <string>
-// #include <type_traits>
-// #include <utility>
-// #include <vector>
 
 namespace TreeOutputInfo
 {
@@ -37,6 +24,7 @@ namespace TreeOutputInfo
     std::vector<unsigned int> next;
     std::vector<unsigned int> previous;
     std::vector<unsigned int> nneighbors;
+    std::vector<unsigned int> ngapneighbors;
     std::vector<unsigned int> n0;
     std::vector<unsigned int> n1;
     std::vector<unsigned int> n2;
@@ -64,6 +52,7 @@ namespace TreeOutputInfo
       tree->Branch("next", &next);
       tree->Branch("previous", &previous);
       tree->Branch("nneighbors", &nneighbors);
+      tree->Branch("ngapneighbors", &ngapneighbors);
       tree->Branch("n0", &n0);
       tree->Branch("n1", &n1);
       tree->Branch("n2", &n2);
@@ -91,6 +80,7 @@ namespace TreeOutputInfo
       next.clear();
       previous.clear();
       nneighbors.clear();
+      ngapneighbors.clear();
       n0.clear();
       n1.clear();
       n2.clear();

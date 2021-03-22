@@ -76,4 +76,5 @@ std::ostringstream &operator<<(std::ostringstream &os, const CellHash &hash)
     return os;
 }
 
+
 #endif

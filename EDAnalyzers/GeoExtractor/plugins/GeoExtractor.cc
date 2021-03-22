@@ -65,6 +65,7 @@
 // #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 // #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "EDAnalyzers/GeoExtractor/interface/TreeOutputInfo.h"
+#include "EDAnalyzers/GeoExtractor/interface/addOutput.h"
 #include "EDAnalyzers/GeoExtractor/interface/DetO.h"
 #include "EDAnalyzers/GeoExtractor/interface/MakePrintable.h"
 
@@ -169,10 +170,10 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
 
   // Filter the Ids
-  LOG(INFO) << "Fillter Cells"<<"\n";
+  LOG(INFO) << "Filter all Cells for HGCal cells."<<"\n";
   v_validHGCalIds = filterCellIds(v_allCellIds);
 
-  LOG(INFO) << "Build the map"<<"\n";
+  LOG(INFO) << "Filling the detector structure."<<"\n";
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     DetId iterId = v_validHGCalIds[i];
@@ -208,7 +209,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     {
       if (std::find(v_validHGCalIds.begin(), v_validHGCalIds.end(), neighbor) != v_validHGCalIds.end())
       {
-        cellptr->neighbors.push_back(neighbor);
+        cellptr->neighbors.insert(neighbor);
       }
     }
 
@@ -238,27 +239,32 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
 
     // add the neighbors
-    std::vector<std::vector<unsigned int>*> v_neighborTreeptrs;
-    v_neighborTreeptrs.push_back(&treeOutput->n0);
-    v_neighborTreeptrs.push_back(&treeOutput->n1);
-    v_neighborTreeptrs.push_back(&treeOutput->n2);
-    v_neighborTreeptrs.push_back(&treeOutput->n3);
-    v_neighborTreeptrs.push_back(&treeOutput->n4);
-    v_neighborTreeptrs.push_back(&treeOutput->n5);
-    v_neighborTreeptrs.push_back(&treeOutput->n6);
-    v_neighborTreeptrs.push_back(&treeOutput->n7);
+    std::vector<std::vector<unsigned int>*> v_neighborTreePtrs;
+    v_neighborTreePtrs.push_back(&treeOutput->n0);
+    v_neighborTreePtrs.push_back(&treeOutput->n1);
+    v_neighborTreePtrs.push_back(&treeOutput->n2);
+    v_neighborTreePtrs.push_back(&treeOutput->n3);
+    v_neighborTreePtrs.push_back(&treeOutput->n4);
+    v_neighborTreePtrs.push_back(&treeOutput->n5);
+    v_neighborTreePtrs.push_back(&treeOutput->n6);
+    v_neighborTreePtrs.push_back(&treeOutput->n7);
+    int neighborsSize= (int)cellptr->neighbors.size();
+    int gapneighborsSize= (int)cellptr->gapneighbors.size();
     for (int i = 0; i < 8; i++)
     {
-      if (i<(int)cellptr->neighbors.size()){
-        v_neighborTreeptrs[i]->push_back(cellptr->neighbors[i]);
+      if (i<neighborsSize){
+        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->neighbors.begin(),i));
+      }
+      else if (i<gapneighborsSize+neighborsSize){
+        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->neighbors.begin(),i-neighborsSize));
       }
       else {
-        v_neighborTreeptrs[i]->push_back(0);
+        v_neighborTreePtrs[i]->push_back(0);
       }
       
     }
   }
-  LOGCFG.level = DEBUG;
+  // LOGCFG.level = DEBUG;
   LOG(INFO)<<"Start fixing the bounderies.\n";
   fixNeighborsBoundery(v_validHGCalIds);
 }

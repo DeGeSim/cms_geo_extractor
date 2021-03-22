@@ -49,6 +49,14 @@ public:
         }
         return *this;
     }
+    template<class T>
+    LOG &operator<<(T &msg) {
+        if(msglevel >= LOGCFG.level) {
+            cout << msg;
+            opened = true;
+        }
+        return *this;
+    }
 private:
     bool opened = false;
     typelog msglevel = DEBUG;

@@ -1,6 +1,6 @@
 #pragma once
 
-Cell *GeoExtractor::getCellPtr(DetId &iterId)
+Cell *GeoExtractor::getCellPtr(const DetId &iterId)
 {
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(iterId);
   // Setup the detector
@@ -27,7 +27,7 @@ Cell *GeoExtractor::getCellPtr(DetId &iterId)
   return cellptr;
 }
 
-CellHash GeoExtractor::getCellHash(DetId &iterId)
+CellHash GeoExtractor::getCellHash(const DetId &iterId)
 {
   // Setup the detector
   unsigned int detectorid = iterId.det();

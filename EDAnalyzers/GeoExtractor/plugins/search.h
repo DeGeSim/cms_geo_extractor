@@ -174,23 +174,26 @@ std::pair<DetId, float> GeoExtractor::searchInLayer(
   LOG(DEBUG) << "search from cell\n";
   LOG(DEBUG) << *originCellptr << "\n";
 
-  // The cell that is the closest, to be replace by close cells
-  // if getcell can't find the wafer / cell it starts with the (0,0) coordinates
+  // Prepare for the getStartCell function:
+  // Create a hash with the desired target coordinates as an entry point.
   CellHash targethash = std::make_tuple(targetdetectorid, targetsubdetid, targetlayerid, targetwaferortileid, targetcellid);
-  std::set<DetId> s_neighbors(originCellptr->neighbors.begin(), originCellptr->neighbors.end());
+
+  // Contruct the set containing the cells, that sould be avoided.
+  // This is necessairy as the gapfinder may call this function multiple times to get multiple neighbors.
+  std::set<DetId> s_neighbors;
   DetId closest_cellDetId;
   if (avoidNeighbors)
   {
+    s_neighbors = std::set<DetId>(originCellptr->neighbors.begin(), originCellptr->neighbors.end());
     closest_cellDetId = getStartCell(targethash, s_neighbors);
   }
   else
   {
     // Pass an empty set of Ids for the function to avoid.
-    s_neighbors.clear();
     closest_cellDetId = getStartCell(targethash, s_neighbors);
   }
+  // if getStartCell can't find the wafer / cell it starts with the (0,0) coordinates
 
-  //For the gapfixing:
   // If the startcell is already in the neighbors, then start at 00
   Cell *closest_cellptr = getCellPtr(closest_cellDetId);
 
@@ -208,13 +211,18 @@ std::pair<DetId, float> GeoExtractor::searchInLayer(
   {
     improvement = false;
 
-    for (DetId &neighbor : closest_cellptr->neighbors)
+    for (auto neighbor : closest_cellptr->neighbors)
     {
-      // if avoidNeighbors, then skip the entries that are already neighbors
-      // this vector should be replaceed by a set...
-      if (avoidNeighbors && std::find(originCellptr->neighbors.begin(), originCellptr->neighbors.end(), neighbor) != originCellptr->neighbors.end())
+      //For the gapfixing:
+      // If avoidNeighbors, then skip the entries that are already neighbors
+      // to avoid returning the same candidate twice.
+      if (avoidNeighbors)
       {
-        continue;
+        if (originCellptr->getAllNeighbors().find(neighbor) != originCellptr->getAllNeighbors().end())
+        {
+          LOG(DEBUG) << "Skipping because "<<originCellptr->globalid.rawId() << " already has neighbor "<< neighbor.rawId() << " .\n";
+          continue;
+        }
       }
 
       LOG(DEBUG) << "    4\n";
@@ -296,7 +304,7 @@ DetId GeoExtractor::getStartCell(CellHash hash, std::set<DetId> s_avoid)
     //This part is only relevant for fixing the gaps between HSi and HSc
     if (!s_avoid.empty())
     {
-      std::vector<DetId>::iterator curNeighborIdPtr = cellptr->neighbors.begin();
+      std::set<DetId>::iterator curNeighborIdPtr = cellptr->neighbors.begin();
       //while the id is in the set of ids that are to be avoided...
       while (s_avoid.find(cellptr->globalid) != s_avoid.end())
       {
