@@ -8,10 +8,10 @@ template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
 {
     os << "[";
-    for (int i = 0; i < v.size(); ++i)
+    for (int i = 0; i < (int)v.size(); ++i)
     {
         os << v[i];
-        if (i != v.size() - 1)
+        if (i != (int)v.size() - 1)
             os << ", ";
     }
     os << "]\n";
@@ -21,6 +21,20 @@ std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
 // C++ template to print std::set container elements
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::set<T> &v)
+{
+    os << "[";
+    for (auto it : v)
+    {
+        os << it;
+        if (it != *v.rbegin())
+            os << ", ";
+    }
+    os << "]\n";
+    return os;
+}
+// C++ template to print std::list container elements
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const std::list<T> &v)
 {
     os << "[";
     for (auto it : v)
@@ -65,6 +79,19 @@ std::ostream &operator<<(std::ostream &os, const CellHash &hash)
     return os;
 }
 
+typedef std::tuple<double, Cell *> PosListTup;
+std::ostream &operator<<(std::ostream &os, const PosListTup &tup)
+{
+    auto [xpos, cellptr] = tup;
+    os << "(x: " << xpos << " id: " << cellptr->globalid.rawId() << ") ";
+    return os;
+}
+
+bool operator<(const PosListTup &a, const PosListTup &b)
+{
+    return (std::get<0>(a) < std::get<0>(b));
+}
+
 std::ostringstream &operator<<(std::ostringstream &os, const CellHash &hash)
 {
     auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
@@ -75,6 +102,5 @@ std::ostringstream &operator<<(std::ostringstream &os, const CellHash &hash)
     os << " Cell (" << cellid.first << "," << cellid.second << ")";
     return os;
 }
-
 
 #endif

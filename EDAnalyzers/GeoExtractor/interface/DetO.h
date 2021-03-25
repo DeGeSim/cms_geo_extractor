@@ -34,7 +34,9 @@ public:
   float x;
   float y;
   DetId globalid;
+  // Closest cell in the next layer in outwards direction
   DetId next;
+  // Closest cell in the next layer in inwards direction
   DetId previous;
   std::set<DetId> neighbors;
   std::set<DetId> gapneighbors;

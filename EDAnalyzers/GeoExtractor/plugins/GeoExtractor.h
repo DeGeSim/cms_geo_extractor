@@ -48,8 +48,16 @@ private:
   std::pair<DetId, float> searchInLayer(DetId cellId, CellHash hash, unsigned int detectorid, unsigned int subdetid, unsigned int layerid, bool avoidNeighbors = 0);
   DetId getStartCell(CellHash hash, std::set<DetId> s_avoid);
 
-  void fixNeighborsBoundery(std::vector<DetId> &v_validHGCalIds);
-  DetId findGapNeighbors(Cell *cellptr);
+  // For the gapfixing:
+  void fixGap(std::vector<DetId> &v_validHGCalIds);
+  // detector subdet layer -> list [ (xpos, cellptr) ]
+  std::map<unsigned int, std::map<unsigned int, std::map<unsigned int, std::vector<PosListTup> > > > xdistmap;
+  static bool sort_xdistmap_vectors(const PosListTup &first, const PosListTup &second);
+  DetId assingGapNeighbors(Cell *cellptr);
+  void setupXLists();
+  bool rangecond(std::vector<PosListTup>::iterator iter, Cell * cellptr);
+  void altassingGapNeighbors(Cell *cellptr);
+  
 
   //Get the det/subdet/wafer/cell id as a tuple
   CellHash getCellHash(const DetId &iterId);

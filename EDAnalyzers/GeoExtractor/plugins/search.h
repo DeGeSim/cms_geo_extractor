@@ -53,10 +53,11 @@ DetId GeoExtractor::findNextCell(DetId cellId)
       return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, 1).first;
     }
   }
+  //For the hadronic part
   if (detectorid == DetId::HGCalHSi || detectorid == DetId::HGCalHSc)
   {
     // for layer <8 all cells we can just search in the Si part
-    if (layerid < 8 && detectorid == DetId::HGCalHSi)
+    if (layerid < 8)
     {
       LOG(DEBUG) << "C\n";
       return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1).first;

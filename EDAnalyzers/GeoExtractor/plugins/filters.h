@@ -22,7 +22,7 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
       continue;
     }
     m_rej[detectorid]["det"]++;
-    // Todo Position check
+    // Radius = 25
 
     auto x = recHitTools.getPosition(v_allCellIds[i]).x();
     if (x < -50 || x > 50)

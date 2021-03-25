@@ -264,9 +264,9 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
       
     }
   }
-  // LOGCFG.level = DEBUG;
+  
   LOG(INFO)<<"Start fixing the bounderies.\n";
-  fixNeighborsBoundery(v_validHGCalIds);
+  fixGap(v_validHGCalIds);
 }
 
 // ------------ method called once each job just before starting event loop  ------------
