@@ -252,7 +252,8 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     v_neighborTreePtrs.push_back(&treeOutput->n7);
     int neighborsSize = (int)cellptr->neighbors.size();
     int gapneighborsSize = (int)cellptr->gapneighbors.size();
-    for (int i = 0; i < 8; i++){
+    for (int i = 0; i < 8; i++)
+    {
       if (i < neighborsSize)
       {
         v_neighborTreePtrs[i]->push_back(*std::next(cellptr->neighbors.begin(), i));
@@ -261,14 +262,14 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
       {
         v_neighborTreePtrs[i]->push_back(*std::next(cellptr->gapneighbors.begin(), i - neighborsSize));
         DetId foo = *std::next(cellptr->gapneighbors.begin(), i - neighborsSize);
-        LOG(INFO) << "adding gapneighbor " << foo.rawId() << " ";
+        LOG(DEBUG) << "adding gapneighbor " << foo.rawId() << " ";
       }
       else
       {
         v_neighborTreePtrs[i]->push_back(0);
       }
     }
-    LOG(INFO) << "\n";
+    LOG(DEBUG) << "\n";
   }
 
   LOG(INFO) << "Start fixing the bounderies.\n";
