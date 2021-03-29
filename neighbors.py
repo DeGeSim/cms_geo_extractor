@@ -27,8 +27,8 @@ import seaborn as sns
 #     "pgf.preamble": "\\usepackage{mymplsetup}"
 # })
 # plt.rcParams = plt.rcParamsDefault
-
-
+plt.rcParams = plt.rcParamsDefault
+mpl.rcParams.update({'font.size': 16})
 # %%
 rf = uproot.open("output/DetIdLUT.root")
 arr = rf["analyzer/tree"].arrays()
@@ -80,90 +80,104 @@ else:
 
 # %%
 # # Types of the detector cells
-# sns.catplot(
-#     x="celltype",
-#     data=keydf,
-#     kind="count",
-#     hue="detectorid",
-# )
-# plt.tight_layout()
-# plt.savefig("CellTypes.pdf")
-# # %%
-# # Number of neighbors
-# ax = sns.catplot(
-#     x="layerid",
-#     data=keydf,
-#     kind="count",
-#     hue="detectorid",
-#     legend_out=True,
-#     height=4,
-#     aspect=2.5,
-# )
-# locs, labels = plt.xticks()
-# plt.xticks(locs[::3], labels[::3])
-# plt.savefig("CellsPerLayer.pdf")
+sns.catplot(
+    x="celltype",
+    data=keydf,
+    kind="count",
+    hue="detectorid",
+)
+plt.tight_layout()
+plt.savefig("CellTypes.pdf")
 # %%
-# sns.color_palette("tab10")
-# sns.set()
-# fig , axes = plt.subplots(4,7,figsize=(35, 20),sharex=True,squeeze=True)
-# for i in range(len(axes)):
-#     for j in range(len(axes[0])):
-#         layerid=i*6+j+1
-#         if layerid>=23:
-#             continue
-#         dfsel=keydf[(keydf["layerid"]==layerid) & (keydf["detectorid"]==8)]
-#         print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
-#         sns.histplot(
-#             x="nneighbors",
-#             data=dfsel,
-#             hue="detectorid",
-#             ax=axes[i][j]
-#         )
-#         axes[i][j].set_title(f"layer {layerid}")
-#         axes[i][j].set_yscale('log')
-# plt.title("Number of Neighbors per Cell")
-# plt.yscale('log')
-# plt.savefig("neighborsHist8.pdf")
+# Number of neighbors
+ax = sns.catplot(
+    x="layerid",
+    data=keydf,
+    kind="count",
+    hue="detectorid",
+    legend_out=True,
+    height=4,
+    aspect=2.5,
+)
+locs, labels = plt.xticks()
+plt.xticks(locs[::3], labels[::3])
+plt.savefig("CellsPerLayer.pdf")
+# %%
+plt.cla()
+plt.clf()
+plt.close()
+
+fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=False)
+for i in range(len(axes)):
+    for j in range(len(axes[0])):
+        layerid = i * (len(axes[0]) - 1) + j + 1
+        if layerid >= 23:
+            continue
+        dfsel = keydf[
+            (keydf["layerid"] == layerid)
+            & (keydf["detectorid"] == 8)
+        ]
+        print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
+        sns.histplot(
+            x="nneighbors",
+            data=dfsel,
+            discrete=True,
+            multiple="dodge",
+            ax=axes[i][j],
+        )
+        axes[i][j].set_title(f"layer {layerid}")
+        axes[i][j].set_yscale('log')
+fig.suptitle("Number of Neighbors per Cell in HgCalEE")
+
+plt.tight_layout()
+fig.subplots_adjust(top=0.95)
+plt.savefig("neighborsHistEE.pdf")
 # # %%
 
-
-# plt.cla()
-# plt.clf()
-# plt.close()
-
-# sns.color_palette("tab10")
-# sns.set()
-# fig , axes = plt.subplots(4,7,figsize=(35, 20),sharex=True,squeeze=True)
-# for i in range(len(axes)):
-#     for j in range(len(axes[0])):
-#         layerid=i*6+j+1
-#         if layerid>=23:
-#             continue
-#         dfsel=keydf[(keydf["layerid"]==layerid) & (keydf["detectorid"]!=8)]
-#         print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
-#         sns.histplot(
-#             x="nneighbors",
-#             data=dfsel,
-#             hue="detectorid",
-#             ax=axes[i][j]
-#         )
-#         axes[i][j].set_title(f"layer {layerid}")
-#         axes[i][j].set_yscale('log')
-# plt.title("Number of Neighbors per Cell")
-# plt.yscale('log')
-# plt.savefig("neighborsHist.pdf")
-# %%
+# Hadronic Neighbors
 
 plt.cla()
 plt.clf()
 plt.close()
 
-sns.color_palette("tab10")
-sns.set()
-fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, squeeze=True)
+fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=False)
 for i in range(len(axes)):
     for j in range(len(axes[0])):
-        layerid = i * 6 + j + 1
+        layerid = i * (len(axes[0]) - 1) + j + 1
+        if layerid >= 23:
+            continue
+        dfsel = keydf[
+            (keydf["layerid"] == layerid)
+            & (keydf["detectorid"] != 8)
+        ]
+        print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
+        sns.histplot(
+            x="nneighbors",
+            data=dfsel,
+            discrete=True,
+            multiple="dodge",
+            hue="detectorid",
+            ax=axes[i][j],
+        )
+        axes[i][j].set_title(f"layer {layerid}")
+        axes[i][j].set_yscale('log')
+fig.suptitle("Number of Neighbors per Cell in HSi (9) and HSc(10)")
+
+plt.tight_layout()
+fig.subplots_adjust(top=0.95)
+plt.savefig("neighborsHistH.pdf")
+
+
+# %%
+# Added neighbors
+plt.cla()
+plt.clf()
+plt.close()
+
+fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=True)
+for i in range(len(axes)):
+    for j in range(len(axes[0])):
+        layerid = i * (len(axes[0]) - 1) + j + 1
         if layerid >= 23:
             continue
         dfsel = keydf[
@@ -172,24 +186,129 @@ for i in range(len(axes)):
             & (keydf["ngapneighbors"] != 0)
         ]
         print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
-        sns.histplot(x="ngapneighbors", data=dfsel, hue="detectorid", ax=axes[i][j])
+        sns.histplot(
+            x="ngapneighbors",
+            data=dfsel,
+            discrete=True,
+            multiple="dodge",
+            hue="detectorid",
+            ax=axes[i][j],
+        )
         axes[i][j].set_title(f"layer {layerid}")
-        # axes[i][j].set_yscale("log")
-plt.title("Number of Neighbors per Cell")
-# plt.yscale("log")
+fig.suptitle("Number of added Neighbors from the other subdetector in the HGCalH")
+
+plt.tight_layout()
+fig.subplots_adjust(top=0.95)
 plt.savefig("gapneighbors.pdf")
 
 
+# Hadronic Neighbors with gapfixing
+
+plt.cla()
+plt.clf()
+plt.close()
+
+fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=False)
+for i in range(len(axes)):
+    for j in range(len(axes[0])):
+        layerid = i * (len(axes[0]) - 1) + j + 1
+        if layerid >= 23:
+            continue
+        dfsel = keydf[
+            (keydf["layerid"] == layerid)
+            & (keydf["detectorid"] != 8)
+        ]
+        dfsel=dfsel.assign(totalneighbors=dfsel["nneighbors"]+dfsel["ngapneighbors"])
+        print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
+        sns.histplot(
+            x="totalneighbors",
+            data=dfsel,
+            discrete=True,
+            multiple="dodge",
+            hue="detectorid",
+            ax=axes[i][j],
+        )
+        axes[i][j].set_title(f"layer {layerid}")
+        axes[i][j].set_yscale('log')
+fig.suptitle("Number of Neighbors per Cell in HSi (9) and HSc(10) after fixing the gaps.")
+
+plt.tight_layout()
+fig.subplots_adjust(top=0.95)
+plt.savefig("neighborsHistH_with_gapfixing.pdf")
+
 # %%
-propsL = ["issilicon", "type", "z"]
-detL = [8, 9, 10]
-fig, axs = plt.subplots(len(propsL), 1, figsize=(5, 4 * len(propsL)))
+# Cell Scatterplot
+plt.cla()
+plt.clf()
+plt.close()
 
-for detectorid in detL:
-    for prop, ax in zip(propsL, axs):
-        ax.hist(getprop(prop, geoD[detectorid]))
-        ax.title.set_text(prop)
+fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=True, squeeze=True)
+for i in range(len(axes)):
+    for j in range(len(axes[0])):
+        layerid = i * (len(axes[0]) - 1) + j + 1
+        if layerid >= 23:
+            continue
+        dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
 
+        dfsel = pd.concat(
+            [
+                dfsel[(keydf["detectorid"] == 9)][::3],
+                dfsel[(keydf["detectorid"] == 10)],
+            ]
+        )
+        print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
+        sns.scatterplot(
+            x="x",
+            y="y",
+            data=dfsel,
+            hue="detectorid",
+            ax=axes[i][j],
+        )
+        axes[i][j].set_title(f"layer {layerid}")
+fig.suptitle("Cells Scatterplot")
+
+plt.tight_layout()
+fig.subplots_adjust(top=0.95)
+plt.savefig("scatter.pdf")
+
+### Arrow plot
+# Cell Scatterplot
+plt.cla()
+plt.clf()
+plt.close()
+
+fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=True, squeeze=True)
+for i in range(len(axes)):
+    for j in range(len(axes[0])):
+        layerid = i * (len(axes[0]) - 1) + j + 1
+        if layerid >= 23:
+            continue
+        dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
+
+        dfsel = pd.concat(
+            [
+                dfsel[(keydf["detectorid"] == 9)][::3],
+                dfsel[(keydf["detectorid"] == 10)],
+            ]
+        )
+        print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
+        sns.scatterplot(
+            x="x",
+            y="y",
+            data=dfsel,
+            hue="detectorid",
+            ax=axes[i][j],
+        )
+        axes[i][j].set_title(f"layer {layerid}")
+fig.suptitle("Cells Scatterplot")
+
+plt.tight_layout()
+fig.subplots_adjust(top=0.95)
+plt.savefig("scatter.pdf")
+
+
+# %%
+exit(0)
 # %%
 def getnextcellsfreq(detector, layer, threshold=1):
     foo = [
