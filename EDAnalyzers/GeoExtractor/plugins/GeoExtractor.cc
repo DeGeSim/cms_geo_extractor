@@ -256,7 +256,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
         v_neighborTreePtrs[i]->push_back(*std::next(cellptr->neighbors.begin(),i));
       }
       else if (i<gapneighborsSize+neighborsSize){
-        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->neighbors.begin(),i-neighborsSize));
+        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->gapneighbors.begin(),i-neighborsSize));
       }
       else {
         v_neighborTreePtrs[i]->push_back(0);
