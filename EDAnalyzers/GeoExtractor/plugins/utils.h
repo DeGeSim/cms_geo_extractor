@@ -70,7 +70,7 @@ std::string GeoExtractor::printCell(unsigned int detectorid, unsigned int subdet
   stringStream << " Det " << detectorid;
   stringStream << " Subdet " << subdetid;
   stringStream << " Layer " << layerid;
-  stringStream << " Wafer (" << waferid.first << "," << waferid.second << ")"<<"\n";
+  stringStream << " Wafer (" << waferid.first << "," << waferid.second << ") ";
   stringStream << " Cell (" << cellid.first << "," << cellid.second << ")"<<"\n";
   std::string copyOfStr = stringStream.str();
 

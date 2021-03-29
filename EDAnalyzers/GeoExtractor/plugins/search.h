@@ -43,14 +43,23 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     if (layerid < 28)
     {
       LOG(DEBUG) << "A\n";
-      return searchInLayer(cellId, hash, detectorid, subdetid, layerid + 1).first;
+      DetId res= searchInLayer(cellId, hash, detectorid, subdetid, layerid + 1).first;
+      if (res==DetId(0)) {
+        LOG(ERROR) << "Unexpected DetId(0) in findNextCell\n";
+        exit(EXIT_FAILURE);
+      }
+      return res;
     }
     // to the the next detector EE-> HSi
     else
     {
       LOG(DEBUG) << "B\n";
-      // TODO check if there are nodes in layer 1 of the HGCalSc
-      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, 1).first;
+      DetId res= searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, 1).first;
+      if (res==DetId(0)) {
+        LOG(ERROR) << "Unexpected DetId(0) in findNextCell\n";
+        exit(EXIT_FAILURE);
+      }
+      return res;
     }
   }
   //For the hadronic part
@@ -60,7 +69,12 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     if (layerid < 8)
     {
       LOG(DEBUG) << "C\n";
-      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1).first;
+      DetId res= searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1).first;
+      if (res==DetId(0)) {
+        LOG(ERROR) << "Unexpected DetId(0) in findNextCell\n";
+        exit(EXIT_FAILURE);
+      }
+      return res;
     }
     // return 0 in the last layer
     else if (layerid == 22)
@@ -116,7 +130,12 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
     {
       LOG(DEBUG) << "B\n";
       // Get the cell with the least x,y distance in the n-1th layer of the EE.
-      return searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, layerid - 1).first;
+      DetId res= searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, layerid - 1).first;
+      if (res==DetId(0)) {
+        LOG(ERROR) << "Unexpected DetId(0) in findPreviousCell\n";
+        exit(EXIT_FAILURE);
+      }
+      return res;
     }
   }
   if (detectorid == DetId::HGCalHSi || detectorid == DetId::HGCalHSc)
@@ -125,13 +144,23 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
     if (layerid == 1)
     {
       LOG(DEBUG) << "D\n";
-      return searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, 28).first;
+      DetId res= searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, 28).first;
+      if (res==DetId(0)) {
+        LOG(ERROR) << "Unexpected DetId(0) in findPreviousCell\n";
+        exit(EXIT_FAILURE);
+      }
+      return res;
     }
     // HSc starts with layer 9, so for all cells from layer <10 we can just search in the Si part
     else if (layerid < 10)
     {
       LOG(DEBUG) << "C\n";
-      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1).first;
+      DetId res= searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1).first;
+      if (res==DetId(0)) {
+        LOG(ERROR) << "Unexpected DetId(0) in findPreviousCell\n";
+        exit(EXIT_FAILURE);
+      }
+      return res;
     }
 
     // for layer > 10, both detectors need to be searched for the closest cells
@@ -194,6 +223,16 @@ std::pair<DetId, float> GeoExtractor::searchInLayer(
     closest_cellDetId = getStartCell(targethash, s_neighbors);
   }
   // if getStartCell can't find the wafer / cell it starts with the (0,0) coordinates
+
+  //If the target detector has no cells in the selected area, then it will return DetId(0).
+  //In this case, abort:
+  if (closest_cellDetId==DetId(0))
+  {
+    return std::make_pair(DetId(0), 9999999);
+  }
+  
+  
+
 
   // If the startcell is already in the neighbors, then start at 00
   Cell *closest_cellptr = getCellPtr(closest_cellDetId);
@@ -269,9 +308,10 @@ DetId GeoExtractor::getStartCell(CellHash hash, std::set<DetId> s_avoid)
 
   if (subdet.layers.find(layerid) == subdet.layers.end())
   {
-    LOG(ERROR) << "No such layer:\n";
-    LOG(ERROR) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
-    exit(EXIT_FAILURE);
+    LOG(WARN) << "No such layer:\n";
+    LOG(WARN) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
+    //This condition can also be fullfilled if the selected area has no cells of the selected detector in this layer.
+    return DetId(0);
   }
   Layer &layer = subdet.layers[layerid];
 

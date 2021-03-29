@@ -29,27 +29,12 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
     {
       continue;
     }
-    // LOG(INFO) << "Detector " << iterId.det() << "\n";
-    // LOG(INFO) << "Other Detector " << std::get<0>(getCellHash(cellptr->globalid)) << "\n";
-    LOG(INFO) << "Adding neighbor for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
-    LOG(INFO) << *cellptr << "\n";
+    LOG(DEBUG) << "Adding neighbor for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
+    LOG(DEBUG) << *cellptr << "\n";
 
     altassingGapNeighbors(cellptr);
 
     DetId res;
-    // //Continue to look for neighbors over the gap, until the number is sufficient or the Id0 is reached.
-    // while (
-    //     (iterId.det() == DetId::HGCalHSi && (int)cellptr->getAllNeighbors().size() < 6) ||
-    //     (iterId.det() == DetId::HGCalHSc && (int)cellptr->getAllNeighbors().size() < 4))
-    // {
-    //   res = assingGapNeighbors(cellptr);
-    //   if (res == DetId(0))
-    //   {
-    //     break;
-    //   }
-
-    //   cellptr->gapneighbors.insert(res);
-    // }
   }
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
@@ -80,26 +65,26 @@ DetId GeoExtractor::assingGapNeighbors(Cell *cellptr)
 
   auto [candidate, delta] = searchInLayer(cellptr->globalid, hash, targetdetectorid, subdetid, layerid, true);
 
-  LOG(INFO) << "For origin " << cellptr->globalid.rawId() << ": ";
-  LOG(INFO) << hash << "\n";
-  LOG(INFO) << "For target " << candidate.rawId() << ": ";
-  LOG(INFO) << getCellHash(candidate) << "\n";
+  LOG(DEBUG) << "For origin " << cellptr->globalid.rawId() << ": ";
+  LOG(DEBUG) << hash << "\n";
+  LOG(DEBUG) << "For target " << candidate.rawId() << ": ";
+  LOG(DEBUG) << getCellHash(candidate) << "\n";
 
   if (cellptr->gapneighbors.find(candidate) != cellptr->gapneighbors.end())
   {
-    LOG(INFO) << "Candidate is already part of the neighbors for this cell, stoping search.\n";
+    LOG(DEBUG) << "Candidate is already part of the neighbors for this cell, stoping search.\n";
     return DetId(0);
   }
   else if (delta > maxDeltaHScHSiGap)
   {
-    LOG(INFO) << "Gap " << delta << " vs " << maxDeltaHScHSiGap;
-    LOG(INFO) << " => skipping.\n\n";
+    LOG(DEBUG) << "Gap " << delta << " vs " << maxDeltaHScHSiGap;
+    LOG(DEBUG) << " => skipping.\n\n";
     return DetId(0);
   }
   else
   {
-    LOG(INFO) << "Gap " << delta << " vs " << maxDeltaHScHSiGap;
-    LOG(INFO) << " => adding.\n\n";
+    LOG(DEBUG) << "Gap " << delta << " vs " << maxDeltaHScHSiGap;
+    LOG(DEBUG) << " => adding.\n\n";
     return candidate;
   }
 }
@@ -319,7 +304,7 @@ void GeoExtractor::altassingGapNeighbors(Cell *cellptr)
     }
   }
 
-  LOG(INFO) << "number of new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
+  LOG(DEBUG) << "number of new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
   std::sort(v_newGapNeighbors.begin(), v_newGapNeighbors.end());
 
   int maxneighbors = (isSiliconDet(cellptr->globalid.det())) ? simaxneighbors : scmaxneighbors;
@@ -330,12 +315,12 @@ void GeoExtractor::altassingGapNeighbors(Cell *cellptr)
     curneighbors = (int)cellptr->neighbors.size() + (int)cellptr->gapneighbors.size();
     if (curneighbors >= maxneighbors)
     {
-      LOG(INFO) << "Stop adding neigbors, because total number is " << curneighbors << "\n";
+      LOG(DEBUG) << "Stop adding neigbors, because total number is " << curneighbors << "\n";
       break;
     }
     cellptr->gapneighbors.insert(gapneighborptr->globalid);
     iadded++;
-    LOG(INFO) << cellptr->globalid.rawId() << ": Adding (" << iadded << ") " << gapneighborptr->globalid.rawId() << "\n";
+    LOG(DEBUG) << cellptr->globalid.rawId() << ": Adding (" << iadded << ") " << gapneighborptr->globalid.rawId() << "\n";
   }
 }
 
