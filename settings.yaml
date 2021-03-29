@@ -1,2 +1,7 @@
 "maxDeltaHScHSiGap": 4.0
 "internalDebugLevel": 1
+"simaxneighbors": 6
+"scmaxneighbors": 8
+"selectionRadius": 25.0
+"selection_x": 0.0
+"selection_y": -100.0

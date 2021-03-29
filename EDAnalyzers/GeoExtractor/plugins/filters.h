@@ -9,7 +9,7 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
     m_rej[detectorid];
     m_rej[detectorid]["det"] = 0;
     m_rej[detectorid]["x"] = 0;
-    m_rej[detectorid]["y"] = 0;
+    m_rej[detectorid]["circle"] = 0;
     m_rej[detectorid]["z"] = 0;
   }
   for (int i = 0; i < (int)v_allCellIds.size(); i++)
@@ -25,18 +25,19 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
     // Radius = 25
 
     auto x = recHitTools.getPosition(v_allCellIds[i]).x();
-    if (x < -50 || x > 50)
+    if (x < -25 || x > 25)
     {
       continue;
     }
     m_rej[detectorid]["x"]++;
 
     auto y = recHitTools.getPosition(v_allCellIds[i]).y();
-    if (y < -150 || y > -50)
+    if ((y - selection_y) * (y - selection_y) + (x - selection_x) * (selection_x) > (selectionRadius * selectionRadius))
+    // if (y < -125 || y > -75)
     {
       continue;
     }
-    m_rej[detectorid]["y"]++;
+    m_rej[detectorid]["circle"]++;
 
     auto z = recHitTools.getPosition(v_allCellIds[i]).z();
     if (z < 0)
@@ -48,22 +49,20 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
     v_validHGCalIds.push_back(v_allCellIds[i]);
   }
   LOG(INFO) << "\tdet    ";
-  LOG(INFO) << "x    ";
-  LOG(INFO) << "y    ";
+  LOG(INFO) << "x\t";
+  LOG(INFO) << "circle\t";
   LOG(INFO) << "z \n";
   for (auto detectorid : v_HGCalDets)
   {
     LOG(INFO) << detectorid << "\t";
     LOG(INFO) << m_rej[detectorid]["det"] << "\t";
     LOG(INFO) << m_rej[detectorid]["x"] << "\t";
-    LOG(INFO) << m_rej[detectorid]["y"] << "\t";
+    LOG(INFO) << m_rej[detectorid]["circle"] << "\t";
     LOG(INFO) << m_rej[detectorid]["z"] << "\n";
   }
   LOG(INFO) << "Cells left: " << v_validHGCalIds.size() << "\n";
   return v_validHGCalIds;
 }
-
-
 
 bool GeoExtractor::validId(DetId id)
 {
@@ -111,8 +110,8 @@ void GeoExtractor::validateId(DetId id)
 {
   if (!validId(id))
   {
-    LOG(DEBUG) << "Invalid cell Id:" << id.rawId()<<"\n";
-    LOG(DEBUG) << *getCellPtr(id)<<"\n";
+    LOG(DEBUG) << "Invalid cell Id:" << id.rawId() << "\n";
+    LOG(DEBUG) << *getCellPtr(id) << "\n";
     throw std::invalid_argument("Invalid Cell");
   }
 }

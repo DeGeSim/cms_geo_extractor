@@ -21,11 +21,11 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
     }
     Cell *cellptr = getCellPtr(iterId);
     //Skip if there is allready a sufficient number of neighbors
-    if (iterId.det() == DetId::HGCalHSi && (int)cellptr->getAllNeighbors().size() >= 6)
+    if (iterId.det() == DetId::HGCalHSi && (int)cellptr->getAllNeighbors().size() >= simaxneighbors)
     {
       continue;
     }
-    if (iterId.det() == DetId::HGCalHSc && (int)cellptr->getAllNeighbors().size() >= 4)
+    if (iterId.det() == DetId::HGCalHSc && (int)cellptr->getAllNeighbors().size() >= scmaxneighbors)
     {
       continue;
     }
@@ -322,7 +322,7 @@ void GeoExtractor::altassingGapNeighbors(Cell *cellptr)
   LOG(INFO) << "number of new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
   std::sort(v_newGapNeighbors.begin(), v_newGapNeighbors.end());
 
-  int maxneighbors = (isSiliconDet(cellptr->globalid.det())) ? 8 : 6;
+  int maxneighbors = (isSiliconDet(cellptr->globalid.det())) ? simaxneighbors : scmaxneighbors;
   int curneighbors;
   int iadded = 0;
   for (auto &[delta, gapneighborptr] : v_newGapNeighbors)
