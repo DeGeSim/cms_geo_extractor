@@ -241,8 +241,9 @@ void GeoExtractor::altassingGapNeighbors(Cell *cellptr)
 
   std::vector<PosListTup>::iterator inner = current;
   std::vector<PosListTup>::iterator middle;
-  int iterations=0;
-  while (!rangecond(lower,cellptr))
+  int iterations = 0;
+  //Binary search to put lower to the lower edge of the boundery.
+  while (!rangecond(lower, cellptr))
   {
     middle = lower + std::distance(lower, inner) / 2;
     LOG(DEBUG) << "l " << (lower - xL.begin()) << " m " << (middle - xL.begin()) << " i " << (inner - xL.begin()) << "\n";
@@ -260,18 +261,19 @@ void GeoExtractor::altassingGapNeighbors(Cell *cellptr)
       break;
     }
     iterations++;
-    if (iterations>14){
+    if (iterations > 14)
+    {
       exit(0);
     }
   }
-  LOG(DEBUG) << "Lower bound found in " << iterations  << " iterations.\n";
-
+  LOG(DEBUG) << "Lower bound found in " << iterations << " iterations.\n";
 
   inner = current;
-  iterations=0;
-  while (!rangecond(upper,cellptr))
+  iterations = 0;
+  //Binary search to put upper to the upper edge of the boundery.
+  while (!rangecond(upper, cellptr))
   {
-    //The difference is negative 
+    //The difference is negative
     middle = upper + std::distance(upper, inner) / 2;
     LOG(DEBUG) << "u " << (upper - xL.begin()) << " m " << (middle - xL.begin()) << " i " << (inner - xL.begin()) << "\n";
     if (!rangecond(middle, cellptr))
@@ -289,20 +291,22 @@ void GeoExtractor::altassingGapNeighbors(Cell *cellptr)
       break;
     }
     iterations++;
-    if (iterations>14){
+    if (iterations > 14)
+    {
       exit(0);
     }
   }
-  LOG(DEBUG) << "Upper bound found in " << iterations  << "iterations.\n";
+  LOG(DEBUG) << "Upper bound found in " << iterations << "iterations.\n";
 
-  LOG(DEBUG) << "distance lower upper " << std::distance(lower,upper) << "\n";
-  if (std::distance(lower, lower)!=0 || std::distance(upper, upper)){
+  LOG(DEBUG) << "distance lower upper " << std::distance(lower, upper) << "\n";
+  if (std::distance(lower, lower) != 0 || std::distance(upper, upper))
+  {
     exit(1);
   }
   //Now upper points to the highest element in the range, lower to the lowerest
 
   //Now also check the condition in y and save the cellpointer to a vector
-  std::vector<Cell *> v_newGapNeighbors;
+  std::vector<PosListTup> v_newGapNeighbors;
   for (vector<PosListTup>::iterator candit = lower; candit <= upper; candit++)
   {
     Cell *cellcanditptr = std::get<1>(*candit);
@@ -311,17 +315,28 @@ void GeoExtractor::altassingGapNeighbors(Cell *cellptr)
     double delta = dx * dx + dy * dy;
     if (delta < maxDeltaHScHSiGap)
     {
-      v_newGapNeighbors.push_back(cellcanditptr);
+      v_newGapNeighbors.push_back(std::make_tuple(delta, cellcanditptr));
     }
   }
+
   LOG(INFO) << "number of new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
+  std::sort(v_newGapNeighbors.begin(), v_newGapNeighbors.end());
 
-  for (auto &gapneighborptr : v_newGapNeighbors)
+  int maxneighbors = (isSiliconDet(cellptr->globalid.det())) ? 8 : 6;
+  int curneighbors;
+  int iadded = 0;
+  for (auto &[delta, gapneighborptr] : v_newGapNeighbors)
   {
+    curneighbors = (int)cellptr->neighbors.size() + (int)cellptr->gapneighbors.size();
+    if (curneighbors >= maxneighbors)
+    {
+      LOG(INFO) << "Stop adding neigbors, because total number is " << curneighbors << "\n";
+      break;
+    }
     cellptr->gapneighbors.insert(gapneighborptr->globalid);
+    iadded++;
+    LOG(INFO) << cellptr->globalid.rawId() << ": Adding (" << iadded << ") " << gapneighborptr->globalid.rawId() << "\n";
   }
-  treeOutput->ngapneighbors.push_back((unsigned int)v_newGapNeighbors.size());
-
 }
 
 bool GeoExtractor::rangecond(std::vector<PosListTup>::iterator iter, Cell *cellptr)
