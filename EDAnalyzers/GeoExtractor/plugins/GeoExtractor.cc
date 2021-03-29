@@ -154,7 +154,6 @@ void GeoExtractor::instanciateMapForCell(DetId &iterId)
   }
 }
 
-
 // ------------ method called for each event  ------------
 void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup)
 {
@@ -170,10 +169,12 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
 
   // Filter the Ids
-  LOG(INFO) << "Filter all Cells for HGCal cells."<<"\n";
+  LOG(INFO) << "Filter all Cells for HGCal cells."
+            << "\n";
   v_validHGCalIds = filterCellIds(v_allCellIds);
 
-  LOG(INFO) << "Filling the detector structure."<<"\n";
+  LOG(INFO) << "Filling the detector structure."
+            << "\n";
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     DetId iterId = v_validHGCalIds[i];
@@ -181,7 +182,8 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
     if (!handle_topo_HGCal.isValid())
     {
-      LOG(ERROR) << "Error: Invalid HGCal topology."<<"\n";
+      LOG(ERROR) << "Error: Invalid HGCal topology."
+                 << "\n";
       exit(EXIT_FAILURE);
     }
     instanciateMapForCell(iterId);
@@ -222,13 +224,14 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
     n_printed++;
   }
-  LOG(INFO) << "Assing the Z neighbors."<<"\n";
+  LOG(INFO) << "Assing the Z neighbors."
+            << "\n";
   assignZNeighbors(v_validHGCalIds);
 
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     DetId iterId = v_validHGCalIds[i];
-    Cell * cellptr = getCellPtr(iterId);
+    Cell *cellptr = getCellPtr(iterId);
     treeOutput->x.push_back(cellptr->x);
     treeOutput->y.push_back(cellptr->y);
     treeOutput->celltype.push_back(cellptr->type);
@@ -237,9 +240,8 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     treeOutput->previous.push_back(cellptr->next);
     treeOutput->nneighbors.push_back((int)cellptr->neighbors.size());
 
-
     // add the neighbors
-    std::vector<std::vector<unsigned int>*> v_neighborTreePtrs;
+    std::vector<std::vector<unsigned int> *> v_neighborTreePtrs;
     v_neighborTreePtrs.push_back(&treeOutput->n0);
     v_neighborTreePtrs.push_back(&treeOutput->n1);
     v_neighborTreePtrs.push_back(&treeOutput->n2);
@@ -248,24 +250,28 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     v_neighborTreePtrs.push_back(&treeOutput->n5);
     v_neighborTreePtrs.push_back(&treeOutput->n6);
     v_neighborTreePtrs.push_back(&treeOutput->n7);
-    int neighborsSize= (int)cellptr->neighbors.size();
-    int gapneighborsSize= (int)cellptr->gapneighbors.size();
-    for (int i = 0; i < 8; i++)
-    {
-      if (i<neighborsSize){
-        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->neighbors.begin(),i));
+    int neighborsSize = (int)cellptr->neighbors.size();
+    int gapneighborsSize = (int)cellptr->gapneighbors.size();
+    for (int i = 0; i < 8; i++){
+      if (i < neighborsSize)
+      {
+        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->neighbors.begin(), i));
       }
-      else if (i<gapneighborsSize+neighborsSize){
-        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->gapneighbors.begin(),i-neighborsSize));
+      else if (i < gapneighborsSize + neighborsSize)
+      {
+        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->gapneighbors.begin(), i - neighborsSize));
+        DetId foo = *std::next(cellptr->gapneighbors.begin(), i - neighborsSize);
+        LOG(INFO) << "adding gapneighbor " << foo.rawId() << " ";
       }
-      else {
+      else
+      {
         v_neighborTreePtrs[i]->push_back(0);
       }
-      
     }
+    LOG(INFO) << "\n";
   }
-  
-  LOG(INFO)<<"Start fixing the bounderies.\n";
+
+  LOG(INFO) << "Start fixing the bounderies.\n";
   fixGap(v_validHGCalIds);
 }
 
