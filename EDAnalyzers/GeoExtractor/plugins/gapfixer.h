@@ -32,7 +32,7 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
     LOG(DEBUG) << "Adding neighbor for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
     LOG(DEBUG) << *cellptr << "\n";
 
-    altassingGapNeighbors(cellptr);
+    assingGapNeighbors(cellptr);
 
     DetId res;
   }
@@ -42,50 +42,6 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
     DetId iterId = v_validHGCalIds[i];
     Cell *cellptr = getCellPtr(iterId);
     treeOutput->ngapneighbors.push_back((unsigned int)cellptr->gapneighbors.size());
-  }
-}
-
-DetId GeoExtractor::assingGapNeighbors(Cell *cellptr)
-{
-  CellHash hash = getCellHash(cellptr->globalid);
-  auto [detectorid, subdetid, layerid, waferortileid, cellid] = hash;
-  int targetdetectorid;
-  switch (detectorid)
-  {
-  case DetId::HGCalHSi:
-    targetdetectorid = DetId::HGCalHSc;
-    break;
-  case DetId::HGCalHSc:
-    targetdetectorid = DetId::HGCalHSi;
-    break;
-  default:
-    LOG(ERROR) << "ERROR assingGapNeighbors: wrong detector type: " << detectorid;
-    exit(EXIT_FAILURE);
-  }
-
-  auto [candidate, delta] = searchInLayer(cellptr->globalid, hash, targetdetectorid, subdetid, layerid, true);
-
-  LOG(DEBUG) << "For origin " << cellptr->globalid.rawId() << ": ";
-  LOG(DEBUG) << hash << "\n";
-  LOG(DEBUG) << "For target " << candidate.rawId() << ": ";
-  LOG(DEBUG) << getCellHash(candidate) << "\n";
-
-  if (cellptr->gapneighbors.find(candidate) != cellptr->gapneighbors.end())
-  {
-    LOG(DEBUG) << "Candidate is already part of the neighbors for this cell, stoping search.\n";
-    return DetId(0);
-  }
-  else if (delta > maxDeltaHScHSiGap)
-  {
-    LOG(DEBUG) << "Gap " << delta << " vs " << maxDeltaHScHSiGap;
-    LOG(DEBUG) << " => skipping.\n\n";
-    return DetId(0);
-  }
-  else
-  {
-    LOG(DEBUG) << "Gap " << delta << " vs " << maxDeltaHScHSiGap;
-    LOG(DEBUG) << " => adding.\n\n";
-    return candidate;
   }
 }
 
@@ -135,7 +91,7 @@ void GeoExtractor::setupXLists()
   }
 }
 
-void GeoExtractor::altassingGapNeighbors(Cell *cellptr)
+void GeoExtractor::assingGapNeighbors(Cell *cellptr)
 {
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(cellptr->globalid);
 
