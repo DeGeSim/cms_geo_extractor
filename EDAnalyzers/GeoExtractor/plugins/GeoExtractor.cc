@@ -175,9 +175,8 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
   LOG(INFO) << "Filling the detector structure."
             << "\n";
-  for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
+  for (DetId &iterId : v_validHGCalIds)
   {
-    DetId iterId = v_validHGCalIds[i];
     edm::ESHandle<HGCalTopology> &handle_topo_HGCal = m_topo[iterId.det()];
 
     if (!handle_topo_HGCal.isValid())
@@ -227,20 +226,32 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   LOG(INFO) << "Assing the Z neighbors."
             << "\n";
   assignZNeighbors(v_validHGCalIds);
+  LOG(INFO) << "Done.\n";
 
-  for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
+  LOG(INFO) << "Start fixing the bounderies.\n";
+  fixGap(v_validHGCalIds);
+  LOG(INFO) << "Done.\n";
+
+  LOG(INFO) << "Filling TBranches.\n";
+
+  for (DetId &iterId : v_validHGCalIds)
   {
-    DetId iterId = v_validHGCalIds[i];
     Cell *cellptr = getCellPtr(iterId);
+
     treeOutput->x.push_back(cellptr->x);
     treeOutput->y.push_back(cellptr->y);
     treeOutput->celltype.push_back(cellptr->type);
     treeOutput->issilicon.push_back(cellptr->issilicon);
     treeOutput->next.push_back(cellptr->next);
     treeOutput->previous.push_back(cellptr->previous);
-    treeOutput->nneighbors.push_back((int)cellptr->neighbors.size());
 
-    // add the neighbors
+    int neighborsSize = (int)cellptr->neighbors.size();
+    treeOutput->nneighbors.push_back(neighborsSize);
+    int gapneighborsSize = (int)cellptr->gapneighbors.size();
+    treeOutput->ngapneighbors.push_back(gapneighborsSize);
+
+    // Put the pointer to the tbranches in a vector so we can iterate over them more easily.
+
     std::vector<std::vector<unsigned int> *> v_neighborTreePtrs;
     v_neighborTreePtrs.push_back(&treeOutput->n0);
     v_neighborTreePtrs.push_back(&treeOutput->n1);
@@ -250,30 +261,39 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     v_neighborTreePtrs.push_back(&treeOutput->n5);
     v_neighborTreePtrs.push_back(&treeOutput->n6);
     v_neighborTreePtrs.push_back(&treeOutput->n7);
-    int neighborsSize = (int)cellptr->neighbors.size();
-    int gapneighborsSize = (int)cellptr->gapneighbors.size();
-    for (int i = 0; i < 8; i++)
+
+    LOG(DEBUG) << iterId.rawId();
+    LOG(DEBUG) << " neighborsSize:" << neighborsSize;
+    LOG(DEBUG) << " gapneighborsSize:" << gapneighborsSize << "\n";
+
+    for (int ineighbor = 0; ineighbor < 8; ineighbor++)
     {
-      if (i < neighborsSize)
+
+      LOG(DEBUG) << "\t" << ineighbor << "\n";
+      if (ineighbor < neighborsSize)
       {
-        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->neighbors.begin(), i));
+        DetId neighbortoadd = *std::next(cellptr->neighbors.begin(), ineighbor);
+        v_neighborTreePtrs[ineighbor]->push_back(neighbortoadd);
+
+        LOG(DEBUG) << "\t" << iterId.rawId() << " ineighbor (" << ineighbor << "): adding neighbor " << neighbortoadd.rawId() << "\n";
       }
-      else if (i < gapneighborsSize + neighborsSize)
+
+      else if (ineighbor < gapneighborsSize + neighborsSize)
       {
-        v_neighborTreePtrs[i]->push_back(*std::next(cellptr->gapneighbors.begin(), i - neighborsSize));
-        DetId foo = *std::next(cellptr->gapneighbors.begin(), i - neighborsSize);
-        LOG(DEBUG) << "adding gapneighbor " << foo.rawId() << " ";
+        DetId neighbortoadd = *std::next(cellptr->gapneighbors.begin(), ineighbor - neighborsSize);
+        v_neighborTreePtrs[ineighbor]->push_back(neighbortoadd);
+
+        LOG(DEBUG) << "\t" << iterId.rawId() << " ineighbor (" << ineighbor << "): adding gapneighbor " << neighbortoadd.rawId() << "\n";
       }
       else
       {
-        v_neighborTreePtrs[i]->push_back(0);
+        LOG(DEBUG) << "\t" << iterId.rawId() << " ineighbor (" << ineighbor << "): adding 0"
+                  << "\n";
+        v_neighborTreePtrs[ineighbor]->push_back(0);
       }
     }
     LOG(DEBUG) << "\n";
   }
-
-  LOG(INFO) << "Start fixing the bounderies.\n";
-  fixGap(v_validHGCalIds);
 }
 
 // ------------ method called once each job just before starting event loop  ------------

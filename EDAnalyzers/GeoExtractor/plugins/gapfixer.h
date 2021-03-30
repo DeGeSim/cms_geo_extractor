@@ -31,19 +31,13 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
       if ((int)cellptr->getAllNeighbors().size() >= scmaxneighbors)
         continue;
     }
-    LOG(DEBUG) << "Adding neighbor for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
+
+    LOG(DEBUG) << "Assigning gapneighbors for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
     LOG(DEBUG) << *cellptr << "\n";
 
     assingGapNeighbors(cellptr);
 
     DetId res;
-  }
-  for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
-  {
-    //keep track of the number of added neighbors
-    DetId iterId = v_validHGCalIds[i];
-    Cell *cellptr = getCellPtr(iterId);
-    treeOutput->ngapneighbors.push_back((unsigned int)cellptr->gapneighbors.size());
   }
 }
 
@@ -86,8 +80,9 @@ void GeoExtractor::setupXLists()
             xdistmap[detectorid][subdetid][layerid].push_back(std::make_tuple(cell.x, &cell));
           }
         }
-        std::vector<PosListTup> &xL = xdistmap[detectorid][subdetid][layerid];
-        std::sort(xL.begin(), xL.end());
+        std::sort(
+            xdistmap[detectorid][subdetid][layerid].begin(),
+            xdistmap[detectorid][subdetid][layerid].end());
       }
     }
   }
@@ -267,19 +262,27 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
 
   //Now also check the condition in y and save the cellpointer to a vector
   std::vector<PosListTup> v_newGapNeighbors;
+  LOG(DEBUG) << "For " << cellptr->globalid.rawId() << "\n";
   for (vector<PosListTup>::iterator candit = lower; candit <= upper; candit++)
   {
     Cell *cellcanditptr = std::get<1>(*candit);
+    if (cellcanditptr->globalid == cellptr->globalid)
+      continue;
+
     double dx = (cellcanditptr->x - cellptr->x);
     double dy = (cellcanditptr->y - cellptr->y);
-    double delta = dx * dx + dy * dy;
+    double delta = std::sqrt(dx * dx + dy * dy);
     if (delta < maxDeltaHScHSiGap)
     {
+      LOG(DEBUG) << delta;
+      LOG(DEBUG) << " from (" << cellptr->x << "," << cellptr->y;
+      LOG(DEBUG) << ") vs (" << cellcanditptr->x << "," << cellcanditptr->y << ")\n";
       v_newGapNeighbors.push_back(std::make_tuple(delta, cellcanditptr));
     }
   }
+  LOG(DEBUG) << "\n";
 
-  LOG(DEBUG) << "number of new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
+  LOG(DEBUG) << "number of opetential new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
   std::sort(v_newGapNeighbors.begin(), v_newGapNeighbors.end());
 
   int maxneighbors = (isSiliconDet(cellptr->globalid.det())) ? simaxneighbors : scmaxneighbors;
@@ -290,12 +293,18 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
     curneighbors = (int)cellptr->neighbors.size() + (int)cellptr->gapneighbors.size();
     if (curneighbors >= maxneighbors)
     {
+
       LOG(DEBUG) << "Stop adding neigbors, because total number is " << curneighbors << "\n";
       break;
     }
+
+    LOG(DEBUG) << cellptr->globalid.rawId() << ": Adding (" << iadded << ") " << gapneighborptr->globalid.rawId() << " delta " << delta << "\n";
+
+    LOG(DEBUG) << cellptr->globalid.rawId() << " " << (int)cellptr->getAllNeighbors().size() << " " << (int)cellptr->neighbors.size() << " " << (int)cellptr->gapneighbors.size() << " "
+              << "\n";
+
     cellptr->gapneighbors.insert(gapneighborptr->globalid);
     iadded++;
-    LOG(DEBUG) << cellptr->globalid.rawId() << ": Adding (" << iadded << ") " << gapneighborptr->globalid.rawId() << "\n";
   }
 }
 
