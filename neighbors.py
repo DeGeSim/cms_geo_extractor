@@ -28,7 +28,7 @@ import seaborn as sns
 # })
 # plt.rcParams = plt.rcParamsDefault
 plt.rcParams = plt.rcParamsDefault
-mpl.rcParams.update({'font.size': 16})
+mpl.rcParams.update({"font.size": 16})
 # %%
 rf = uproot.open("output/DetIdLUT.root")
 arr = rf["analyzer/tree"].arrays()
@@ -271,41 +271,47 @@ plt.tight_layout()
 fig.subplots_adjust(top=0.95)
 plt.savefig("scatter.pdf")
 
+# %%
 ### Arrow plot
 # Cell Scatterplot
 plt.cla()
 plt.clf()
 plt.close()
 
-fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=True, squeeze=True)
-for i in range(len(axes)):
-    for j in range(len(axes[0])):
-        layerid = i * (len(axes[0]) - 1) + j + 1
-        if layerid >= 23:
+fig = plt.figure(figsize=(10, 12))
+
+for layerid in range(1, 29):
+    if layerid >= 23:
+        continue
+    if layerid != 15:
+        continue
+
+    dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
+    print(f"layer {layerid}")
+
+    sns.scatterplot(
+        x="x",
+        y="y",
+        data=dfsel,
+        hue="detectorid",
+        # markers=["o","o"]
+        style="detectorid",
+    )
+    for originid, row in dfsel.iterrows():
+        if row.ngapneighbors == 0:
             continue
-        dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
+        for i in range(row.nneighbors, row.nneighbors + row.ngapneighbors):
+            targetid = row["n" + str(i)]
+            dx = keydf.loc[targetid].x - row.x
+            dy = keydf.loc[targetid].y - row.y
+            plt.arrow(row.x, row.y, dx, dy, head_width=0.4)
 
-        dfsel = pd.concat(
-            [
-                dfsel[(keydf["detectorid"] == 9)][::3],
-                dfsel[(keydf["detectorid"] == 10)],
-            ]
-        )
-        print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
-        sns.scatterplot(
-            x="x",
-            y="y",
-            data=dfsel,
-            hue="detectorid",
-            ax=axes[i][j],
-        )
-        axes[i][j].set_title(f"layer {layerid}")
-fig.suptitle("Cells Scatterplot")
+    plt.gca().set_title(f"layer {layerid}")
+    plt.title("Cells Scatterplot")
 
-plt.tight_layout()
-fig.subplots_adjust(top=0.95)
-plt.savefig("scatter.pdf")
-
+    plt.tight_layout()
+    fig.subplots_adjust(top=0.95)
+    plt.savefig(f"gaparrows-{layerid}.pdf")
 
 # %%
 exit(0)
