@@ -21,13 +21,15 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
     }
     Cell *cellptr = getCellPtr(iterId);
     //Skip if there is allready a sufficient number of neighbors
-    if (iterId.det() == DetId::HGCalHSi && (int)cellptr->getAllNeighbors().size() >= simaxneighbors)
+    if (iterId.det() == DetId::HGCalHSi)
     {
-      continue;
+      if ((int)cellptr->getAllNeighbors().size() >= simaxneighbors)
+        continue;
     }
-    if (iterId.det() == DetId::HGCalHSc && (int)cellptr->getAllNeighbors().size() >= scmaxneighbors)
+    if (iterId.det() == DetId::HGCalHSc)
     {
-      continue;
+      if ((int)cellptr->getAllNeighbors().size() >= scmaxneighbors)
+        continue;
     }
     LOG(DEBUG) << "Adding neighbor for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
     LOG(DEBUG) << *cellptr << "\n";
@@ -95,8 +97,25 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
 {
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(cellptr->globalid);
 
-  //The ist of the x values is presorted, the higher the index, the higher the number.
-  std::vector<PosListTup> &xL = xdistmap[detectorid][subdetid][layerid];
+  LOG(DEBUG) << "assingGapNeighbors cell " << cellptr->globalid.rawId() << "\n";
+  LOG(DEBUG) << getCellHash(cellptr->globalid) << "\n";
+  if (detectorid == DetId::HGCalHSi)
+  {
+    //skip if layer doesnt exist or has not been initialized because it is empty.
+    std::map<int, Layer> &layers = detcol.detectors[DetId::HGCalHSc].subdetectors[subdetid].layers;
+    if (layers.find(layerid) == layers.end())
+      return;
+  }
+  if (detectorid == DetId::HGCalHSc)
+  {
+    //skip if layer doesnt exist or has not been initialized because it is empty.
+    std::map<int, Layer> &layers = detcol.detectors[DetId::HGCalHSc].subdetectors[subdetid].layers;
+    if (layers.find(layerid) == layers.end())
+      return;
+  }
+
+  //xL is the of the (x,cellptr) pair presorted by x, the higher the index, the higher the number.
+  std::vector<PosListTup> xL = (detectorid == DetId::HGCalHSi) ? xdistmap[DetId::HGCalHSc][subdetid][layerid] : xdistmap[DetId::HGCalHSi][subdetid][layerid];
 
   //These are the boundaries with cells, that could fulfill the distance condition,
   //they are initialized with the first and the last element
