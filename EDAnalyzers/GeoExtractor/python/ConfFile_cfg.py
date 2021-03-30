@@ -46,6 +46,7 @@ with open("settings.yaml", "r") as f:
     settingsD = yaml.load(f,Loader=yaml.SafeLoader)
 
 for key in settingsD:
+    print("setting "+str(key)+" <- "+str(settingsD[key]))
     if type(settingsD[key]) is int:
         settingsD[key] = cms.int32(settingsD[key])
     if type(settingsD[key]) is float:
