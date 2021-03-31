@@ -32,8 +32,12 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
     m_rej[detectorid]["x"]++;
 
     auto y = recHitTools.getPosition(v_allCellIds[i]).y();
-    if ((y - selection_y) * (y - selection_y) + (x - selection_x) * (selection_x) > (selectionRadius * selectionRadius))
-    // if (y < -125 || y > -75)
+
+    double dx = (x - selection_x);
+    double dy = (y - selection_y);
+    double delta = std::sqrt(dx * dx + dy * dy);
+
+    if (delta > selectionRadius)
     {
       continue;
     }
