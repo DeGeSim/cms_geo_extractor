@@ -87,7 +87,7 @@ sns.catplot(
     hue="detectorid",
 )
 plt.tight_layout()
-plt.savefig("CellTypes.pdf")
+plt.savefig("plots/CellTypes.pdf")
 # %%
 # Number of neighbors
 ax = sns.catplot(
@@ -101,7 +101,7 @@ ax = sns.catplot(
 )
 locs, labels = plt.xticks()
 plt.xticks(locs[::3], labels[::3])
-plt.savefig("CellsPerLayer.pdf")
+plt.savefig("plots/CellsPerLayer.pdf")
 # %%
 plt.cla()
 plt.clf()
@@ -131,7 +131,7 @@ fig.suptitle("Number of Neighbors per Cell in HgCalEE")
 
 plt.tight_layout()
 fig.subplots_adjust(top=0.95)
-plt.savefig("neighborsHistEE.pdf")
+plt.savefig("plots/neighborsHistEE.pdf")
 # # %%
 
 # Hadronic Neighbors
@@ -165,7 +165,7 @@ fig.suptitle("Number of Neighbors per Cell in HSi (9) and HSc(10)")
 
 plt.tight_layout()
 fig.subplots_adjust(top=0.95)
-plt.savefig("neighborsHistH.pdf")
+plt.savefig("plots/neighborsHistH.pdf")
 
 
 # %%
@@ -199,9 +199,9 @@ fig.suptitle("Number of added Neighbors from the other subdetector in the HGCalH
 
 plt.tight_layout()
 fig.subplots_adjust(top=0.95)
-plt.savefig("gapneighbors.pdf")
+plt.savefig("plots/gapneighbors.pdf")
 
-
+# %%
 # Hadronic Neighbors with gapfixing
 
 plt.cla()
@@ -234,7 +234,7 @@ fig.suptitle("Number of Neighbors per Cell in HSi (9) and HSc(10) after fixing t
 
 plt.tight_layout()
 fig.subplots_adjust(top=0.95)
-plt.savefig("neighborsHistH_with_gapfixing.pdf")
+plt.savefig("plots/neighborsHistH_with_gapfixing.pdf")
 
 # %%
 # Cell Scatterplot
@@ -269,22 +269,17 @@ fig.suptitle("Cells Scatterplot")
 
 plt.tight_layout()
 fig.subplots_adjust(top=0.95)
-plt.savefig("scatter.pdf")
+plt.savefig("plots/scatter.pdf")
 
 # %%
 ### Arrow plot
 # Cell Scatterplot
-plt.cla()
-plt.clf()
-plt.close()
+for layerid in range(1, 23):
+    plt.cla()
+    plt.clf()
+    plt.close()
 
-fig = plt.figure(figsize=(10, 12))
-
-for layerid in range(1, 29):
-    if layerid >= 23:
-        continue
-    if layerid != 15:
-        continue
+    fig = plt.figure(figsize=(10, 12))
 
     dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
     print(f"layer {layerid}")
@@ -304,14 +299,14 @@ for layerid in range(1, 29):
             targetid = row["n" + str(i)]
             dx = keydf.loc[targetid].x - row.x
             dy = keydf.loc[targetid].y - row.y
-            plt.arrow(row.x, row.y, dx, dy, head_width=0.4)
+            plt.arrow(row.x, row.y, dx, dy, head_width=0.4,length_includes_head=True)
 
     plt.gca().set_title(f"layer {layerid}")
     plt.title("Cells Scatterplot")
 
     plt.tight_layout()
     fig.subplots_adjust(top=0.95)
-    plt.savefig(f"gaparrows-{layerid}.pdf")
+    plt.savefig(f"plots/gaparrows-{layerid}.pdf")
 
 # %%
 exit(0)
