@@ -6,6 +6,7 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
   LOG(INFO) << "stating xposlist setup\n";
   setupXLists();
   LOG(INFO) << "xposlist setup done\n";
+  LOGCFG.level = DEBUG;
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     //skip for HGCalEE and for layers where HSc and HSi dont overlap
@@ -39,6 +40,7 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
 
     DetId res;
   }
+  LOGCFG.level = internalDebugLevel;
 }
 
 void GeoExtractor::setupXLists()
@@ -117,23 +119,46 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   std::vector<PosListTup>::iterator upper = xL.end() - 1;
   std::vector<PosListTup>::iterator lower = xL.begin();
 
-  // Not find any element, that fullfils that condition in a binary search.
+  if (std::get<0>(*upper) < cellptr->x - maxDeltaHScHSiGap)
+  {
+    LOG(DEBUG) << "xL highest element xpos is less than the target xpos - maxDeltaHScHSiGap, aborting gapneighbor search for this cell.\n";
+    return;
+  }
+  if (std::get<0>(*lower) > cellptr->x + maxDeltaHScHSiGap)
+  {
+    LOG(DEBUG) << "xL lowest element xpos is lower than the target xpos + maxDeltaHScHSiGap, aborting gapneighbor search for this cell.\n";
+    return;
+  }
+
+  ///////////////////
+  // Now find any element in the range xdelta around the xposition, a binary search.
+  ///////////////////
+
+  LOG(DEBUG) << "Searching between " << *lower << " and " << *upper << "\n";
+
   bool cond = true;
   std::vector<PosListTup>::iterator current;
   double xdelta;
   bool inUpperRange, inLowerRange, higher;
+  int ifoo = 0;
   while (cond)
   {
+    ifoo++;
+    if (ifoo > 30)
+      exit(EXIT_FAILURE);
     current = upper + (int)(std::distance(upper, lower) / 2);
-    LOG(DEBUG) << "Current pos" << *current << "\n";
+
+    // LOG(DEBUG) << "Current pos" << *current << "\n";
+    LOG(DEBUG) << "l " << (lower - xL.begin()) << " c " << (current - xL.begin()) << " u " << (upper - xL.begin()) << "\n";
+
     auto &[curx, curptr] = *current;
     xdelta = std::abs(curx - cellptr->x);
     higher = curptr->x > cellptr->x;
-    inUpperRange = higher && (xdelta < maxDeltaHScHSiGap);
-    inLowerRange = !higher && (xdelta < maxDeltaHScHSiGap);
+    inUpperRange = higher && (xdelta <= maxDeltaHScHSiGap);
+    inLowerRange = !higher && (xdelta <= maxDeltaHScHSiGap);
 
     //Stop if we have found an element in the range
-    if (xdelta < maxDeltaHScHSiGap)
+    if (xdelta <= maxDeltaHScHSiGap)
     {
       cond = false;
       LOG(DEBUG) << "Done! targetx:" << cellptr->x << " current:" << *current;
@@ -159,13 +184,33 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
       if (higher)
       {
         LOG(DEBUG) << " C ";
-        upper = current;
+        //Special Case handling if only the element on the lower end of the list is in range.
+        if ((upper == current && upper - 1 == lower) && (lower - xL.begin() == 0))
+        {
+          LOG(DEBUG) << " C1 ";
+          current = lower;
+          break;
+        }
+        else
+        {
+          upper = current;
+        }
       }
       //vice versa
       else
       {
         LOG(DEBUG) << " D ";
-        lower = current;
+        //Special Case handling if only the element on the upper end of the list is in range.
+        if ((lower == current && upper - 1 == lower) && (xL.end() - upper == 1))
+        {
+          LOG(DEBUG) << " D1 ";
+          current = upper;
+          break;
+        }
+        else
+        {
+          lower = current;
+        }
       }
     }
   }
@@ -301,7 +346,7 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
     LOG(DEBUG) << cellptr->globalid.rawId() << ": Adding (" << iadded << ") " << gapneighborptr->globalid.rawId() << " delta " << delta << "\n";
 
     LOG(DEBUG) << cellptr->globalid.rawId() << " " << (int)cellptr->getAllNeighbors().size() << " " << (int)cellptr->neighbors.size() << " " << (int)cellptr->gapneighbors.size() << " "
-              << "\n";
+               << "\n";
 
     cellptr->gapneighbors.insert(gapneighborptr->globalid);
     iadded++;
