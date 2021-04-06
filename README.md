@@ -14,6 +14,7 @@ cmsrel $CMSVER
 mv $CMSVER geo_ex
 
 cd geo_ex/src/
+mkdir output
 cmsenv
 scram b ProjectRename
 scram b clean
