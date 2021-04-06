@@ -28,7 +28,7 @@ private:
   hgcal::RecHitTools recHitTools;
 
   // container for the topologyies
-  std::map<int, edm::ESHandle<HGCalTopology> > m_topo;
+  std::map<int, edm::ESHandle<HGCalTopology>> m_topo;
 
   //The map, that contains the detector structure
   //Det -> SubDet -> Layer -> Wafer -> Cell
@@ -51,11 +51,12 @@ private:
   // For the gapfixing:
   void fixGap(std::vector<DetId> &v_validHGCalIds);
   // detector subdet layer -> list [ (xpos, cellptr) ]
-  std::map<unsigned int, std::map<unsigned int, std::map<unsigned int, std::vector<PosListTup> > > > xdistmap;
+  std::map<unsigned int, std::map<unsigned int, std::map<unsigned int, std::vector<PosListTup>>>> xdistmap;
   static bool sort_xdistmap_vectors(const PosListTup &first, const PosListTup &second);
   void assingGapNeighbors(Cell *cellptr);
   void setupXLists();
-  bool rangecond(std::vector<PosListTup>::iterator iter, Cell * cellptr);
+  double cellsDelta(Cell *cp1, Cell *cp2);
+  bool rangecond(std::vector<PosListTup>::iterator iter, Cell *cellptr);
 
   //Get the det/subdet/wafer/cell id as a tuple
   CellHash getCellHash(const DetId &iterId);
@@ -70,7 +71,7 @@ private:
   //vector with the numbers of the detector part of the hgcal
   std::vector<int> v_HGCalDets;
   //map that saves which cell are rejected in which step
-  std::map<int, std::map<std::string, int> > m_rej;
+  std::map<int, std::map<std::string, int>> m_rej;
 
   //Variables for the parameters to be passed
   double maxDeltaHScHSiGap;

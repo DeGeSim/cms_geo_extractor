@@ -313,10 +313,7 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
     Cell *cellcanditptr = std::get<1>(*candit);
     if (cellcanditptr->globalid == cellptr->globalid)
       continue;
-
-    double dx = (cellcanditptr->x - cellptr->x);
-    double dy = (cellcanditptr->y - cellptr->y);
-    double delta = std::sqrt(dx * dx + dy * dy);
+    double delta = cellsDelta(cellptr, cellcanditptr);
     if (delta < maxDeltaHScHSiGap)
     {
       LOG(DEBUG) << delta;
@@ -351,6 +348,13 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
     cellptr->gapneighbors.insert(gapneighborptr->globalid);
     iadded++;
   }
+}
+
+double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
+{
+  double dx = (cp1->x - cp2->x);
+  double dy = (cp1->y - cp2->y);
+  return std::sqrt(dx * dx + dy * dy);
 }
 
 bool GeoExtractor::rangecond(std::vector<PosListTup>::iterator iter, Cell *cellptr)
