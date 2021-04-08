@@ -174,7 +174,7 @@ if plotall:
     plt.cla()
     plt.clf()
     plt.close()
-    
+
     fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=True)
     for i in range(len(axes)):
         for j in range(len(axes[0])):
@@ -245,7 +245,9 @@ if plotall:
     plt.clf()
     plt.close()
 
-    fig, axes = plt.subplots(4, 7, figsize=(35, 20), sharex=True, sharey=True, squeeze=True)
+    fig, axes = plt.subplots(
+        4, 7, figsize=(35, 20), sharex=True, sharey=True, squeeze=True
+    )
     for i in range(len(axes)):
         for j in range(len(axes[0])):
             layerid = i * (len(axes[0]) - 1) + j + 1
@@ -255,7 +257,7 @@ if plotall:
 
             dfsel = pd.concat(
                 [
-                    dfsel[(keydf["detectorid"] == 9)][::3],
+                    dfsel[(keydf["detectorid"] == 9)],
                     dfsel[(keydf["detectorid"] == 10)],
                 ]
             )
@@ -275,10 +277,32 @@ if plotall:
     plt.savefig("plots/scatter.pdf")
 
 # %%
+def is_unidirectional(originid, targetid):
+    target = keydf.loc[targetid]
+    directed = originid not in target[["n" + str(e) for e in range(8)]].values
+    return directed
+
+
+# %%
+# check for unidirectional connections
+cellsDirectedS = set()
+for originid, row in keydf.iterrows():
+    if row.ngapneighbors == 0:
+        continue
+    for i in range(row.nneighbors, row.nneighbors + row.ngapneighbors):
+        targetid = row["n" + str(i)]
+        directed = is_unidirectional(originid, targetid)
+        if directed:
+            cellsDirectedS.add(originid)
+            cellsDirectedS.add(targetid)
+
+# %%
 ### Arrow plot
 # Cell Scatterplot
 if plotall:
     for layerid in range(9, 23):
+        #  if layerid != 21:
+        #      continue
         plt.cla()
         plt.clf()
         plt.close()
@@ -293,17 +317,53 @@ if plotall:
             y="y",
             data=dfsel,
             hue="detectorid",
-            # markers=["o","o"]
+            #  markers=["o", "o"],
             style="detectorid",
         )
         for originid, row in dfsel.iterrows():
-            if row.ngapneighbors == 0:
+            # if row.ngapneighbors == 0:
+            #     continue
+            # for i in range(row.nneighbors, row.nneighbors + row.ngapneighbors):
+            if (
+                originid % 10 != 0
+                and row.ngapneighbors == 0
+                and originid not in cellsDirectedS
+            ):
                 continue
-            for i in range(row.nneighbors, row.nneighbors + row.ngapneighbors):
+            for i in range(row.nneighbors + row.ngapneighbors):
                 targetid = row["n" + str(i)]
+
+                if (
+                    # only regular neighbors
+                    i < row.nneighbors
+                    # with gapneighbors
+                    and row.ngapneighbors > 0
+                    # that dont have a dicrected connection
+                    and originid not in cellsDirectedS
+                    and targetid not in cellsDirectedS
+                    #every third cells
+                    and originid % 3 != 0
+                ):
+                    continue
+
                 dx = keydf.loc[targetid].x - row.x
                 dy = keydf.loc[targetid].y - row.y
-                plt.arrow(row.x, row.y, dx, dy, head_width=0.4, length_includes_head=True)
+                if i >= row.nneighbors:
+                    color = "blue"
+                else:
+                    color = "black"
+                if is_unidirectional(originid, targetid):
+                    color = "red"
+                plt.arrow(
+                    row.x,
+                    row.y,
+                    dx,
+                    dy,
+                    head_width=0.1,
+                    color=color,
+                    length_includes_head=True,
+                )
+                # plt.arrow(row.x, row.y, dx, dy, head_width=0.4, length_includes_head=True)
 
         plt.title(f"Connections added by gapfixing layer {layerid}")
 
@@ -312,17 +372,7 @@ if plotall:
         plt.savefig(f"plots/gaparrows-{layerid}.pdf")
 
 # %%
-# check for unidirectional connections
-dfsel = keydf[(keydf["layerid"] == 20) & (keydf["detectorid"] != 8)]
-for originid, row in dfsel.iterrows():
-    if row.ngapneighbors == 0:
-        continue
-    for i in range(row.nneighbors, row.nneighbors + row.ngapneighbors):
-        targetid = row["n" + str(i)]
-        target= keydf.loc[targetid]
-        directed = originid not in target[["n"+str(e) for e in range(8)]].values
-        if directed:
-            print(originid,targetid,directed)
+
 
 # %%
 def getnextcellsfreq(detector, layer, threshold=1):
