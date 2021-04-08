@@ -160,10 +160,20 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   iSetup.get<CaloGeometryRecord>().get(geom);
   recHitTools.setGeometry(*(geom.product()));
 
+  iSetup.get<IdealGeometryRecord>().get("HGCalEESensitive", m_geom[DetId::HGCalEE]);
+  iSetup.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive", m_geom[DetId::HGCalHSi]);
+  iSetup.get<IdealGeometryRecord>().get("HGCalHEScintillatorSensitive", m_geom[DetId::HGCalHSc]);
+
   iSetup.get<IdealGeometryRecord>().get("HGCalEESensitive", m_topo[DetId::HGCalEE]);
   iSetup.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive", m_topo[DetId::HGCalHSi]);
   iSetup.get<IdealGeometryRecord>().get("HGCalHEScintillatorSensitive", m_topo[DetId::HGCalHSc]);
 
+  if (!m_geom[DetId::HGCalEE].isValid() or !m_geom[DetId::HGCalHSi].isValid() or !m_geom[DetId::HGCalHSc].isValid())
+  {
+    LOG(ERROR) << "Error: Invalid HGCal geometry."
+               << "\n";
+    exit(EXIT_FAILURE);
+  }
   int n_printed = 0;
   //get all valid cells in the geometry, will be filtered later
   const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
@@ -288,7 +298,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
       else
       {
         LOG(DEBUG) << "\t" << iterId.rawId() << " ineighbor (" << ineighbor << "): adding 0"
-                  << "\n";
+                   << "\n";
         v_neighborTreePtrs[ineighbor]->push_back(0);
       }
     }

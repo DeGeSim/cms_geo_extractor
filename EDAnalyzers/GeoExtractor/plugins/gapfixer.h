@@ -6,7 +6,7 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
   LOG(INFO) << "stating xposlist setup\n";
   setupXLists();
   LOG(INFO) << "xposlist setup done\n";
-  LOGCFG.level = DEBUG;
+
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     //skip for HGCalEE and for layers where HSc and HSi dont overlap
@@ -40,7 +40,6 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
 
     DetId res;
   }
-  LOGCFG.level = internalDebugLevel;
 }
 
 void GeoExtractor::setupXLists()
@@ -119,14 +118,14 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   std::vector<PosListTup>::iterator upper = xL.end() - 1;
   std::vector<PosListTup>::iterator lower = xL.begin();
 
-  if (std::get<0>(*upper) < cellptr->x - maxDeltaHScHSiGap)
+  if (std::get<0>(*upper) < cellptr->x - maxSearchDelta)
   {
-    LOG(DEBUG) << "xL highest element xpos is less than the target xpos - maxDeltaHScHSiGap, aborting gapneighbor search for this cell.\n";
+    LOG(DEBUG) << "xL highest element xpos is less than the target xpos - maxSearchDelta, aborting gapneighbor search for this cell.\n";
     return;
   }
-  if (std::get<0>(*lower) > cellptr->x + maxDeltaHScHSiGap)
+  if (std::get<0>(*lower) > cellptr->x + maxSearchDelta)
   {
-    LOG(DEBUG) << "xL lowest element xpos is lower than the target xpos + maxDeltaHScHSiGap, aborting gapneighbor search for this cell.\n";
+    LOG(DEBUG) << "xL lowest element xpos is lower than the target xpos + maxSearchDelta, aborting gapneighbor search for this cell.\n";
     return;
   }
 
@@ -154,11 +153,11 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
     auto &[curx, curptr] = *current;
     xdelta = std::abs(curx - cellptr->x);
     higher = curptr->x > cellptr->x;
-    inUpperRange = higher && (xdelta <= maxDeltaHScHSiGap);
-    inLowerRange = !higher && (xdelta <= maxDeltaHScHSiGap);
+    inUpperRange = higher && (xdelta <= maxSearchDelta);
+    inLowerRange = !higher && (xdelta <= maxSearchDelta);
 
     //Stop if we have found an element in the range
-    if (xdelta <= maxDeltaHScHSiGap)
+    if (xdelta <= maxSearchDelta)
     {
       cond = false;
       LOG(DEBUG) << "Done! targetx:" << cellptr->x << " current:" << *current;
@@ -219,25 +218,6 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   // upper points to an element over the range (or on the edge)
   // current is within the range
   LOG(DEBUG) << "length range " << std::distance(upper, lower) << "\n";
-  // std::vector<PosListTup>::iterator lowercp = lower;
-  // std::vector<PosListTup>::iterator uppercp = upper;
-  // int raiselower = 0;
-  // int lowerupper = 0;
-
-  // while (!rangecond(lower, cellptr))
-  // {
-  //   raiselower++;
-  //   lower++;
-  // }
-  // while (!rangecond(upper, cellptr))
-  // {
-  //   lowerupper++;
-  //   upper--;
-  // }
-  // LOG(DEBUG) << "raiselower " << raiselower << " lowerupper:" << lowerupper << "\n";
-
-  // LOG(DEBUG) << "Compare lowerbound: " << std::distance(lower, lower) << "\n";
-  // LOG(DEBUG) << "Compare upperbound: " << std::distance(upper, upper) << "\n";
 
   std::vector<PosListTup>::iterator inner = current;
   std::vector<PosListTup>::iterator middle;
@@ -299,12 +279,19 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   LOG(DEBUG) << "Upper bound found in " << iterations << "iterations.\n";
 
   LOG(DEBUG) << "distance lower upper " << std::distance(lower, upper) << "\n";
+  LOG(DEBUG) << "original cell: " << *cellptr << "\n";
+  LOG(DEBUG) << "upper: " << *std::get<1>(*upper) << "\n";
+  LOG(DEBUG) << "xposdiff: " << xposdiff(upper, cellptr) << "\n";
+  LOG(DEBUG) << "xposdiffalt: " << xposdiffalt(upper, cellptr) << "\n";
+  LOG(DEBUG) << "lower: " << *std::get<1>(*lower) << "\n";
+  LOG(DEBUG) << "xposdiff: " << xposdiff(lower, cellptr) << "\n";
+  LOG(DEBUG) << "xposdiffalt: " << xposdiffalt(lower, cellptr) << "\n";
+
   if (std::distance(lower, lower) != 0 || std::distance(upper, upper))
   {
     exit(1);
   }
   //Now upper points to the highest element in the range, lower to the lowerest
-
   //Now also check the condition in y and save the cellpointer to a vector
   std::vector<PosListTup> v_newGapNeighbors;
   LOG(DEBUG) << "For " << cellptr->globalid.rawId() << "\n";
@@ -313,6 +300,11 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
     Cell *cellcanditptr = std::get<1>(*candit);
     if (cellcanditptr->globalid == cellptr->globalid)
       continue;
+    double dx = (cellcanditptr->x - cellptr->x);
+    double dy = (cellcanditptr->y - cellptr->y);
+    if (std::sqrt(dx * dx + dy * dy) > maxSearchDelta)
+      continue;
+
     double delta = cellsDelta(cellptr, cellcanditptr);
     if (delta < maxDeltaHScHSiGap)
     {
@@ -324,7 +316,7 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   }
   LOG(DEBUG) << "\n";
 
-  LOG(DEBUG) << "number of opetential new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
+  LOG(DEBUG) << "number of potential new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
   std::sort(v_newGapNeighbors.begin(), v_newGapNeighbors.end());
 
   int maxneighbors = (isSiliconDet(cellptr->globalid.det())) ? simaxneighbors : scmaxneighbors;
@@ -350,14 +342,174 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   }
 }
 
+//This function iterates over the edges of the cells and returns the minimum distance
 double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
 {
-  double dx = (cp1->x - cp2->x);
-  double dy = (cp1->y - cp2->y);
-  return std::sqrt(dx * dx + dy * dy);
+  DetId id1 = cp1->globalid;
+  DetId id2 = cp2->globalid;
+
+  edm::ESHandle<HGCalGeometry> &geo1 = m_geom[id1.det()];
+  edm::ESHandle<HGCalGeometry> &geo2 = m_geom[id2.det()];
+
+  LOG(DEBUG) << "id1 is prent in id 1" << geo1->present(id1) << "\n";
+  LOG(DEBUG) << "id2 is prent in id 2" << geo2->present(id2) << "\n";
+
+  LOG(DEBUG) << "area cell 1" << geo1->getArea(id1) << "\n";
+
+  std::vector<GlobalPoint> v_corners1 = geo1->getCorners(id1);
+  std::vector<GlobalPoint> v_corners2 = geo2->getCorners(id2);
+  GlobalPoint p1 = geo1->getPosition(id1);
+  GlobalPoint p2 = geo2->getPosition(id2);
+
+  LOG(DEBUG) << "id1 pos" << p1 << "\n";
+  LOG(DEBUG) << "id2 pos" << p2 << "\n";
+
+  LOG(DEBUG) << "centers diff: " << dist(p1, p2) << "\n";
+  LOG(DEBUG) << "eq centers diff: " << std::sqrt((cp1->x - cp2->x) * (cp1->x - cp2->x) + (cp1->y - cp2->y) * (cp1->y - cp2->y)) << "\n";
+
+  std::vector<GlobalPoint>::iterator corner1it = v_corners1.begin();
+  std::vector<GlobalPoint>::iterator corner2it = v_corners2.begin();
+
+  //Find the minimum distance between the conrners
+  LOG(DEBUG) << "pre dist\n";
+  double delta = dist(*corner1it, *corner2it);
+  double tmpdelta;
+  bool improvement = true;
+  LOG(DEBUG) << "pre loop\n";
+  while (improvement)
+  {
+    LOG(DEBUG) << "delta " << delta << " ";
+    improvement = false;
+    //Corner1 forward
+    if (corner1it + 1 != v_corners1.end())
+    {
+      tmpdelta = dist(*(corner1it + 1), *corner2it);
+      if (tmpdelta < delta)
+      {
+        corner1it++;
+        delta = tmpdelta;
+        improvement = true;
+        LOG(DEBUG) << "Corner1 ++ noloop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        continue;
+      }
+    }
+    //Corner1 vector loop
+    else
+    {
+      tmpdelta = dist(*v_corners1.begin(), *corner2it);
+      if (tmpdelta < delta)
+      {
+        corner1it = v_corners1.begin();
+        delta = tmpdelta;
+        improvement = true;
+        LOG(DEBUG) << "Corner1 ++ loop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        continue;
+      }
+    }
+    //Corner1 backwards
+    if (corner1it != v_corners1.begin())
+    {
+      tmpdelta = dist(*(corner1it - 1), *corner2it);
+      if (tmpdelta < delta)
+      {
+        corner1it--;
+        delta = tmpdelta;
+        improvement = true;
+        LOG(DEBUG) << "Corner1 -- noloop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        continue;
+      }
+    }
+    //Corner1 vector loop
+    else
+    {
+      tmpdelta = dist(*(v_corners1.end() - 1), *corner2it);
+      if (tmpdelta < delta)
+      {
+        corner1it = (v_corners1.end() - 1);
+        delta = tmpdelta;
+        improvement = true;
+        LOG(DEBUG) << "Corner1 -- loop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        continue;
+      }
+    }
+    //
+    //Conver vector 2
+    //
+    if (corner2it + 1 != v_corners2.end())
+    {
+      tmpdelta = dist(*(corner2it + 1), *corner1it);
+      if (tmpdelta < delta)
+      {
+        corner2it++;
+        delta = tmpdelta;
+        improvement = true;
+        LOG(DEBUG) << "Corner2 ++ noloop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        continue;
+      }
+    }
+    //Corner1 vector loop
+    else
+    {
+      tmpdelta = dist(*v_corners2.begin(), *corner1it);
+      if (tmpdelta < delta)
+      {
+        corner2it = v_corners2.begin();
+        delta = tmpdelta;
+        improvement = true;
+        LOG(DEBUG) << "Corner2 ++ loop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        continue;
+      }
+    }
+    //Corner1 backwards
+    if (corner2it != v_corners2.begin())
+    {
+      tmpdelta = dist(*(corner2it - 1), *corner1it);
+      if (tmpdelta < delta)
+      {
+        corner2it--;
+        delta = tmpdelta;
+        improvement = true;
+        LOG(DEBUG) << "Corner2 -- noloop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        continue;
+      }
+    }
+    //Corner1 vector loop
+    else
+    {
+      tmpdelta = dist(*(v_corners2.end() - 1), *corner1it);
+      if (tmpdelta < delta)
+      {
+        corner2it = (v_corners2.end() - 1);
+        delta = tmpdelta;
+        improvement = true;
+        LOG(DEBUG) << "Corner2 -- loop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        continue;
+      }
+    }
+  }
+  LOG(DEBUG) << "final delta " << delta << "\n\n";
+  if (dist(p1, p2) < delta)
+    exit(EXIT_FAILURE);
+  return delta;
 }
 
 bool GeoExtractor::rangecond(std::vector<PosListTup>::iterator iter, Cell *cellptr)
 {
-  return (std::abs(std::get<0>(*iter) - cellptr->x) < maxDeltaHScHSiGap);
+  return (std::abs(std::get<0>(*iter) - cellptr->x) < maxSearchDelta);
+}
+
+double GeoExtractor::xposdiff(std::vector<PosListTup>::iterator iter, Cell *cellptr)
+{
+  return (std::abs(std::get<0>(*iter) - cellptr->x));
+}
+double GeoExtractor::xposdiffalt(std::vector<PosListTup>::iterator iter, Cell *cellptr)
+{
+  return (std::abs(std::get<1>(*iter)->x - cellptr->x));
+}
+
+double GeoExtractor::dist(GlobalPoint &p1, GlobalPoint &p2)
+{
+  double dx = (p1.x() - p2.x());
+  double dy = (p1.y() - p2.y());
+  return std::sqrt(dx * dx + dy * dy);
 }

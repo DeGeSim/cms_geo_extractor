@@ -1,4 +1,5 @@
-"maxDeltaHScHSiGap": 3.3
+"maxSearchDelta": 4.0
+"maxDeltaHScHSiGap": 0.5
 "internalDebugLevel": 1
 "simaxneighbors": 6
 "scmaxneighbors": 8

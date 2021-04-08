@@ -29,6 +29,7 @@ private:
 
   // container for the topologyies
   std::map<int, edm::ESHandle<HGCalTopology>> m_topo;
+  std::map<int, edm::ESHandle<HGCalGeometry>> m_geom;
 
   //The map, that contains the detector structure
   //Det -> SubDet -> Layer -> Wafer -> Cell
@@ -57,6 +58,9 @@ private:
   void setupXLists();
   double cellsDelta(Cell *cp1, Cell *cp2);
   bool rangecond(std::vector<PosListTup>::iterator iter, Cell *cellptr);
+  double dist(GlobalPoint &p1, GlobalPoint &p2);
+  double xposdiff(std::vector<PosListTup>::iterator iter, Cell *cellptr);
+  double xposdiffalt(std::vector<PosListTup>::iterator iter, Cell *cellptr);
 
   //Get the det/subdet/wafer/cell id as a tuple
   CellHash getCellHash(const DetId &iterId);
@@ -74,6 +78,7 @@ private:
   std::map<int, std::map<std::string, int>> m_rej;
 
   //Variables for the parameters to be passed
+  double maxSearchDelta;
   double maxDeltaHScHSiGap;
   int simaxneighbors;
   int scmaxneighbors;
@@ -85,6 +90,7 @@ private:
 GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
 {
   //
+  maxSearchDelta = iConfig.getParameter<double>("maxSearchDelta");
   maxDeltaHScHSiGap = iConfig.getParameter<double>("maxDeltaHScHSiGap");
   scmaxneighbors = iConfig.getParameter<int>("scmaxneighbors");
   simaxneighbors = iConfig.getParameter<int>("simaxneighbors");
