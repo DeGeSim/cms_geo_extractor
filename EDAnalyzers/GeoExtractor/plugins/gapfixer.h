@@ -305,18 +305,11 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   LOG(DEBUG) << "number of potential new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
   std::sort(v_newGapNeighbors.begin(), v_newGapNeighbors.end());
 
-  int maxneighbors = (isSiliconDet(cellptr->globalid.det())) ? simaxneighbors : scmaxneighbors;
   int curneighbors;
   int iadded = 0;
   for (auto &[delta, gapneighborptr] : v_newGapNeighbors)
   {
     curneighbors = (int)cellptr->neighbors.size() + (int)cellptr->gapneighbors.size();
-    if (curneighbors >= maxneighbors)
-    {
-
-      LOG(DEBUG) << "Stop adding neigbors, because total number is " << curneighbors << "\n";
-      break;
-    }
 
     LOG(DEBUG) << cellptr->globalid.rawId() << ": Adding (" << iadded << ") " << gapneighborptr->globalid.rawId() << " delta " << delta << "\n";
 

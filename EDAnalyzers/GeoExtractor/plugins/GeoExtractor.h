@@ -80,8 +80,6 @@ private:
   //Variables for the parameters to be passed
   double maxSearchDelta;
   double maxDeltaHScHSiGap;
-  int simaxneighbors;
-  int scmaxneighbors;
   double selectionRadius;
   double selection_x;
   double selection_y;
@@ -92,8 +90,6 @@ GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
   //
   maxSearchDelta = iConfig.getParameter<double>("maxSearchDelta");
   maxDeltaHScHSiGap = iConfig.getParameter<double>("maxDeltaHScHSiGap");
-  scmaxneighbors = iConfig.getParameter<int>("scmaxneighbors");
-  simaxneighbors = iConfig.getParameter<int>("simaxneighbors");
   selectionRadius = iConfig.getParameter<double>("selectionRadius");
   selection_y = iConfig.getParameter<double>("selection_y");
   selection_x = iConfig.getParameter<double>("selection_x");
