@@ -307,8 +307,6 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   int iadded = 0;
   for (auto &[delta, gapneighborptr] : v_newGapNeighbors)
   {
-    curneighbors = (int)cellptr->neighbors.size() + (int)cellptr->gapneighbors.size();
-
     LOG(DEBUG) << cellptr->globalid.rawId() << ": Adding (" << iadded << ") " << gapneighborptr->globalid.rawId() << " delta " << delta << "\n";
 
     LOG(DEBUG) << cellptr->globalid.rawId() << " " << (int)cellptr->getAllNeighbors().size() << " " << (int)cellptr->neighbors.size() << " " << (int)cellptr->gapneighbors.size() << " "
