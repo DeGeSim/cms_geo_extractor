@@ -14,11 +14,9 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
 
     if (iterId.det() != DetId::HGCalHSc)
       continue;
-    }
     if (recHitTools.getLayer(iterId) < 9)
-    {
       continue;
-    }
+
     Cell *cellptr = getCellPtr(iterId);
 
     LOG(DEBUG) << "Assigning gapneighbors for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
