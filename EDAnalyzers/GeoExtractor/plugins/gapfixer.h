@@ -313,6 +313,7 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
                << "\n";
 
     cellptr->gapneighbors.insert(gapneighborptr->globalid);
+    gapneighborptr->gapneighbors.insert(cellptr->globalid);
     iadded++;
   }
 }
