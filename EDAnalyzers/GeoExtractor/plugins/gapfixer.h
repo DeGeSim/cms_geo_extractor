@@ -12,8 +12,7 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
     //skip for HGCalEE and for layers where HSc and HSi dont overlap
     DetId iterId = v_validHGCalIds[i];
 
-    if (iterId.det() != DetId::HGCalHSi && iterId.det() != DetId::HGCalHSc)
-    {
+    if (iterId.det() != DetId::HGCalHSc)
       continue;
     }
     if (recHitTools.getLayer(iterId) < 9)
@@ -21,24 +20,11 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
       continue;
     }
     Cell *cellptr = getCellPtr(iterId);
-    //Skip if there is allready a sufficient number of neighbors
-    if (iterId.det() == DetId::HGCalHSi)
-    {
-      if ((int)cellptr->getAllNeighbors().size() >= simaxneighbors)
-        continue;
-    }
-    if (iterId.det() == DetId::HGCalHSc)
-    {
-      if ((int)cellptr->getAllNeighbors().size() >= scmaxneighbors)
-        continue;
-    }
 
     LOG(DEBUG) << "Assigning gapneighbors for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
     LOG(DEBUG) << *cellptr << "\n";
 
     assingGapNeighbors(cellptr);
-
-    DetId res;
   }
 }
 
