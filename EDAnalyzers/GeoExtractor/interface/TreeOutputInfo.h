@@ -33,6 +33,10 @@ namespace TreeOutputInfo
     std::vector<unsigned int> n5;
     std::vector<unsigned int> n6;
     std::vector<unsigned int> n7;
+    std::vector<unsigned int> n8;
+    std::vector<unsigned int> n9;
+    std::vector<unsigned int> n10;
+    std::vector<unsigned int> n11;
 
     TreeOutput(std::string details, edm::Service<TFileService> fs)
     {
@@ -61,6 +65,10 @@ namespace TreeOutputInfo
       tree->Branch("n5", &n5);
       tree->Branch("n6", &n6);
       tree->Branch("n7", &n7);
+      tree->Branch("n8", &n8);
+      tree->Branch("n9", &n9);
+      tree->Branch("n10", &n10);
+      tree->Branch("n11", &n11);
     }
 
     void fill() { tree->Fill(); }
@@ -90,6 +98,10 @@ namespace TreeOutputInfo
       n5.clear();
       n6.clear();
       n7.clear();
+      n8.clear();
+      n9.clear();
+      n10.clear();
+      n11.clear();
     }
   };
 }

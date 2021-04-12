@@ -271,12 +271,16 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     v_neighborTreePtrs.push_back(&treeOutput->n5);
     v_neighborTreePtrs.push_back(&treeOutput->n6);
     v_neighborTreePtrs.push_back(&treeOutput->n7);
+    v_neighborTreePtrs.push_back(&treeOutput->n8);
+    v_neighborTreePtrs.push_back(&treeOutput->n9);
+    v_neighborTreePtrs.push_back(&treeOutput->n10);
+    v_neighborTreePtrs.push_back(&treeOutput->n11);
 
     LOG(DEBUG) << iterId.rawId();
     LOG(DEBUG) << " neighborsSize:" << neighborsSize;
     LOG(DEBUG) << " gapneighborsSize:" << gapneighborsSize << "\n";
 
-    for (int ineighbor = 0; ineighbor < 8; ineighbor++)
+    for (int ineighbor = 0; ineighbor < (int)v_neighborTreePtrs.size(); ineighbor++)
     {
 
       LOG(DEBUG) << "\t" << ineighbor << "\n";
