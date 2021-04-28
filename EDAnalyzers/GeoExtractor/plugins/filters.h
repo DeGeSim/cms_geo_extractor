@@ -71,9 +71,7 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
 bool GeoExtractor::validId(DetId id)
 {
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(id);
-  // unsigned int detectorid = id.det();
-  // unsigned int subdetid = id.subdetId();
-  // unsigned int layerid = recHitTools.getLayer(id);
+
   if (detectorid != DetId::HGCalEE && detectorid != DetId::HGCalHSi && detectorid != DetId::HGCalHSc)
   {
     LOG(DEBUG) << "wrong detector " << detectorid << "\n";

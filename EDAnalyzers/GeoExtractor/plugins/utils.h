@@ -1,5 +1,13 @@
 #pragma once
 
+int GeoExtractor::realLayerFromId (const DetId &iterId){
+  // Cells in the +z and -z direction will give the same layer!
+  int direction = (recHitTools.getPosition(iterId).z()>0) ? 1 : -1;
+  return direction * recHitTools.getLayer(iterId);
+  // map layers in -z direction to a negative layer id
+}
+
+
 Cell *GeoExtractor::getCellPtr(const DetId &iterId)
 {
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(iterId);
@@ -38,7 +46,7 @@ CellHash GeoExtractor::getCellHash(const DetId &iterId)
   Subdet &subdet = detector.subdetectors[subdetid];
 
   //Setup the layer
-  unsigned int layerid = recHitTools.getLayer(iterId);
+  int layerid = realLayerFromId(iterId);
   Layer &layer = subdet.layers[layerid];
 
   std::pair<int, int> waferortileid;
@@ -64,7 +72,7 @@ CellHash GeoExtractor::getCellHash(const DetId &iterId)
 
 // this method is needed even though we can cout << cell
 // because we need to print out cells that dont exitst.
-std::string GeoExtractor::printCell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> waferid, std::pair<int, int> cellid)
+std::string GeoExtractor::printCell(unsigned int detectorid, unsigned int subdetid, int layerid, std::pair<int, int> waferid, std::pair<int, int> cellid)
 {
   std::ostringstream stringStream;
   stringStream << " Det " << detectorid;

@@ -13,12 +13,13 @@ namespace TreeOutputInfo
     std::vector<unsigned int> globalid;
     std::vector<unsigned int> detectorid;
     std::vector<unsigned int> subdetid;
-    std::vector<unsigned int> layerid;
+    std::vector<int> layerid;
     std::vector<std::pair<int, int> > waferortileid;
     std::vector<std::pair<int, int> > cellid;
 
     std::vector<float> x;
     std::vector<float> y;
+    std::vector<float> z;
     std::vector<int> celltype;
     std::vector<bool> issilicon;
     std::vector<unsigned int> next;
@@ -51,6 +52,7 @@ namespace TreeOutputInfo
       tree->Branch("cellid", &cellid);
       tree->Branch("x", &x);
       tree->Branch("y", &y);
+      tree->Branch("z", &z);
       tree->Branch("celltype", &celltype);
       tree->Branch("issilicon", &issilicon);
       tree->Branch("next", &next);
@@ -83,6 +85,7 @@ namespace TreeOutputInfo
       waferortileid.clear();
       x.clear();
       y.clear();
+      z.clear();
       celltype.clear();
       issilicon.clear();
       next.clear();

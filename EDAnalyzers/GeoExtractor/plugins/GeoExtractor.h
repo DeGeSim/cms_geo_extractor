@@ -46,15 +46,15 @@ private:
   void assignZNeighbors(std::vector<DetId> &v_validHGCalIds);
   DetId findNextCell(DetId cellId);
   DetId findPreviousCell(DetId cellId);
-  std::pair<DetId, float> searchInLayer(DetId cellId, CellHash hash, unsigned int detectorid, unsigned int subdetid, unsigned int layerid);
+  std::pair<DetId, float> searchInLayer(DetId cellId, CellHash hash, unsigned int detectorid, unsigned int subdetid, int layerid);
   DetId getStartCell(CellHash hash);
 
   // For the gapfixing:
   void fixGap(std::vector<DetId> &v_validHGCalIds);
   // detector subdet layer -> list [ (xpos, cellptr) ]
-  std::map<unsigned int, std::map<unsigned int, std::map<unsigned int, std::vector<PosListTup>>>> xdistmap;
+  std::map<unsigned int, std::map<unsigned int, std::map<int, std::vector<PosListTup>>>> xdistmap;
   static bool sort_xdistmap_vectors(const PosListTup &first, const PosListTup &second);
-  void assingGapNeighbors(Cell *cellptr);
+  void assignGapNeighbors(Cell *cellptr);
   void setupXLists();
   double cellsDelta(Cell *cp1, Cell *cp2);
   bool rangecond(std::vector<PosListTup>::iterator iter, Cell *cellptr);
@@ -62,11 +62,12 @@ private:
   double xposdiff(std::vector<PosListTup>::iterator iter, Cell *cellptr);
   double xposdiffalt(std::vector<PosListTup>::iterator iter, Cell *cellptr);
 
+  ////Utils
   //Get the det/subdet/wafer/cell id as a tuple
   CellHash getCellHash(const DetId &iterId);
 
-  std::string printCell(unsigned int detectorid, unsigned int subdetid, unsigned int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
-
+  std::string printCell(unsigned int detectorid, unsigned int subdetid, int layerid, std::pair<int, int> wafer, std::pair<int, int> cell);
+  int realLayerFromId (const DetId &iterId);
   Cell *getCellPtr(const DetId &iterId);
   bool validId(DetId id);
   void validateId(DetId id);

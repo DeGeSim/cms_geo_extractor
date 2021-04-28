@@ -6,7 +6,6 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
   LOG(INFO) << "stating xposlist setup\n";
   setupXLists();
   LOG(INFO) << "xposlist setup done\n";
-
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     //skip for HGCalEE and for layers where HSc and HSi dont overlap
@@ -14,15 +13,16 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
 
     if (iterId.det() != DetId::HGCalHSc)
       continue;
+    //Use the absolute of the layer for this case
     if (recHitTools.getLayer(iterId) < 9)
       continue;
 
     Cell *cellptr = getCellPtr(iterId);
-
+    
     LOG(DEBUG) << "Assigning gapneighbors for " << cellptr->globalid.rawId() << " (#" << cellptr->getAllNeighbors().size() << "): \n";
     LOG(DEBUG) << *cellptr << "\n";
 
-    assingGapNeighbors(cellptr);
+    assignGapNeighbors(cellptr);
   }
 }
 
@@ -40,7 +40,7 @@ void GeoExtractor::setupXLists()
       xdistmap[detectorid][subdetid];
       for (auto &[layerid, layer] : subdet.layers)
       {
-        if (layerid < 9)
+        if (std::abs(layerid) < 9)
         {
           continue;
         }
@@ -73,11 +73,11 @@ void GeoExtractor::setupXLists()
   }
 }
 
-void GeoExtractor::assingGapNeighbors(Cell *cellptr)
+void GeoExtractor::assignGapNeighbors(Cell *cellptr)
 {
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(cellptr->globalid);
 
-  LOG(DEBUG) << "assingGapNeighbors cell " << cellptr->globalid.rawId() << "\n";
+  LOG(DEBUG) << "assignGapNeighbors cell " << cellptr->globalid.rawId() << "\n";
   LOG(DEBUG) << getCellHash(cellptr->globalid) << "\n";
   if (detectorid == DetId::HGCalHSi)
   {
@@ -303,7 +303,6 @@ void GeoExtractor::assingGapNeighbors(Cell *cellptr)
   LOG(DEBUG) << "number of potential new neighbors:" << (int)v_newGapNeighbors.size() << "\n";
   std::sort(v_newGapNeighbors.begin(), v_newGapNeighbors.end());
 
-  int curneighbors;
   int iadded = 0;
   for (auto &[delta, gapneighborptr] : v_newGapNeighbors)
   {
@@ -323,14 +322,21 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
 {
   DetId id1 = cp1->globalid;
   DetId id2 = cp2->globalid;
+  LOG(DEBUG) << "Start GeoExtractor::cellsDelta for " << id1.rawId() << "\n";
+  LOG(DEBUG) << *getCellPtr(id1) << "\n";
+  LOG(DEBUG) << getCellHash(id1) << "\n";
+  LOG(DEBUG) << "and " << id2.rawId() << "\n";
+  LOG(DEBUG) << *getCellPtr(id2) << "\n";
+  LOG(DEBUG) << getCellHash(id2) << "\n";
 
   edm::ESHandle<HGCalGeometry> &geo1 = m_geom[id1.det()];
   edm::ESHandle<HGCalGeometry> &geo2 = m_geom[id2.det()];
 
-  LOG(DEBUG) << "id1 is prent in id 1" << geo1->present(id1) << "\n";
-  LOG(DEBUG) << "id2 is prent in id 2" << geo2->present(id2) << "\n";
+  LOG(DEBUG) << "id1 is present in geo1 " << geo1->present(id1) << "\n";
+  LOG(DEBUG) << "id2 is present in geo2 " << geo2->present(id2) << "\n";
 
   LOG(DEBUG) << "area cell 1" << geo1->getArea(id1) << "\n";
+  LOG(DEBUG) << "area cell 2" << geo2->getArea(id2) << "\n";
 
   std::vector<GlobalPoint> v_corners1 = geo1->getCorners(id1);
   std::vector<GlobalPoint> v_corners2 = geo2->getCorners(id2);
@@ -346,7 +352,7 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
   std::vector<GlobalPoint>::iterator corner1it = v_corners1.begin();
   std::vector<GlobalPoint>::iterator corner2it = v_corners2.begin();
 
-  //Find the minimum distance between the conrners
+  //Find the minimum distance between the corners
   LOG(DEBUG) << "pre dist\n";
   double delta = dist(*corner1it, *corner2it);
   double tmpdelta;
@@ -487,5 +493,6 @@ double GeoExtractor::dist(GlobalPoint &p1, GlobalPoint &p2)
 {
   double dx = (p1.x() - p2.x());
   double dy = (p1.y() - p2.y());
-  return std::sqrt(dx * dx + dy * dy);
+  double dz = (p1.z() - p2.z());
+  return std::sqrt(dx * dx + dy * dy + dz * dz);
 }

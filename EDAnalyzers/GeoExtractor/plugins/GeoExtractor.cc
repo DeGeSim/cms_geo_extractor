@@ -97,6 +97,7 @@ structlog LOGCFG = {};
 // member functions
 //
 
+
 void GeoExtractor::instanciateMapForCell(DetId &iterId)
 {
   // Setup the detector
@@ -117,7 +118,8 @@ void GeoExtractor::instanciateMapForCell(DetId &iterId)
   Subdet &subdet = detector.subdetectors[subdetid];
 
   //Setup the layer
-  unsigned int layerid = recHitTools.getLayer(iterId);
+  int layerid = realLayerFromId(iterId);
+
   if (subdet.layers.find(layerid) == subdet.layers.end())
   {
     subdet.layers[layerid];
@@ -201,6 +203,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     cellptr->globalid = iterId;
     cellptr->x = recHitTools.getPosition(iterId).x();
     cellptr->y = recHitTools.getPosition(iterId).y();
+    cellptr->z = recHitTools.getPosition(iterId).z();
 
     if (isSiliconDet(detectorid))
     {
@@ -233,7 +236,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
     n_printed++;
   }
-  LOG(INFO) << "Assing the Z neighbors."
+  LOG(INFO) << "Assign the Z neighbors."
             << "\n";
   assignZNeighbors(v_validHGCalIds);
   LOG(INFO) << "Done.\n";
@@ -250,6 +253,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
     treeOutput->x.push_back(cellptr->x);
     treeOutput->y.push_back(cellptr->y);
+    treeOutput->z.push_back(cellptr->z);
     treeOutput->celltype.push_back(cellptr->type);
     treeOutput->issilicon.push_back(cellptr->issilicon);
     treeOutput->next.push_back(cellptr->next);

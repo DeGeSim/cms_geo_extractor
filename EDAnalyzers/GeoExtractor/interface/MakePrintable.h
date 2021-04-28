@@ -65,8 +65,8 @@ std::ostream &operator<<(std::ostream &os, const std::pair<T, S> &v)
        << v.second << ")";
     return os;
 }
-
-typedef std::tuple<unsigned int, unsigned int, unsigned int, std::pair<int, int>, std::pair<int, int> > CellHash;
+//detector subdetector layer tile/wafer (0,0)/cell
+typedef std::tuple<unsigned int, unsigned int, int, std::pair<int, int>, std::pair<int, int> > CellHash;
 
 std::ostream &operator<<(std::ostream &os, const CellHash &hash)
 {

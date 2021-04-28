@@ -33,6 +33,7 @@ public:
   int type;
   float x;
   float y;
+  float z;
   DetId globalid;
   // Closest cell in the next layer in outwards direction
   DetId next;

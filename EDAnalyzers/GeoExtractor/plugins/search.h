@@ -13,7 +13,7 @@ void GeoExtractor::assignZNeighbors(std::vector<DetId> &v_validHGCalIds)
     // LOG(DEBUG) << "skipping everything but 2426030080"<<"\n";
     if (i % 1000 == 0)
     {
-      LOG(DEBUG) << "Assinging z neighbors " << i << "\n";
+      LOG(DEBUG) << "Assigning z neighbors " << i << "\n";
     }
     Cell *cellptr = getCellPtr(iterId);
     validateId(cellptr->globalid);
@@ -36,33 +36,35 @@ DetId GeoExtractor::findNextCell(DetId cellId)
   // HGCalHSi = 9, layer 1-22
   // HGCalHSc = 10, layer 9-22
   // HGCalTrigger = 11 X
+  
+  int direction = recHitTools.getPosition(cellId).z() > 0 ? 1 : -1;
 
   // For the ee cal we can easily move forward
   if (detectorid == DetId::HGCalEE)
   {
-    if (layerid < 28)
+    if (std::abs(layerid) < 28)
     {
       LOG(DEBUG) << "A\n";
-      return searchInLayer(cellId, hash, detectorid, subdetid, layerid + 1).first;
+      return searchInLayer(cellId, hash, detectorid, subdetid, layerid + 1*direction).first;
     }
     // to the the next detector EE-> HSi
     else
     {
       LOG(DEBUG) << "B\n";
-      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, 1).first;
+      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, 1*direction).first;
     }
   }
   //For the hadronic part
   if (detectorid == DetId::HGCalHSi || detectorid == DetId::HGCalHSc)
   {
     // for layer <8 all cells we can just search in the Si part
-    if (layerid < 8)
+    if (std::abs(layerid) < 8)
     {
       LOG(DEBUG) << "C\n";
-      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1).first;
+      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1*direction).first;
     }
     // return 0 in the last layer
-    else if (layerid == 22)
+    else if (std::abs(layerid) == 22)
     {
       LOG(DEBUG) << "D\n";
       return DetId(0);
@@ -71,27 +73,27 @@ DetId GeoExtractor::findNextCell(DetId cellId)
     {
       LOG(DEBUG) << "E1\n";
 
-      // Avoid searching bot subdetectors if one of them doenst have cells in the layer:
+      // Avoid searching bot subdetectors if one of them doesnt have cells in the layer:
       Det &detectorsi = detcol.detectors[DetId::HGCalHSi];
       Subdet &subdetsi = detectorsi.subdetectors[subdetid];
-      if (subdetsi.layers.find(layerid + 1) == subdetsi.layers.end())
+      if (subdetsi.layers.find(layerid + 1*direction) == subdetsi.layers.end())
       {
         LOG(DEBUG) << "E1-1\n";
-        return searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid + 1).first;
+        return searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, std::abs(layerid) + 1*direction).first;
       }
       LOG(DEBUG) << "E2\n";
       Det &detectorsc = detcol.detectors[DetId::HGCalHSc];
       Subdet &subdetsc = detectorsc.subdetectors[subdetid];
-      if (subdetsc.layers.find(layerid + 1) == subdetsc.layers.end())
+      if (subdetsc.layers.find(layerid + 1*direction) == subdetsc.layers.end())
       {
         LOG(DEBUG) << "E1-1\n";
-        return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1).first;
+        return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1*direction).first;
       }
 
       LOG(DEBUG) << "E3\n";
-      auto [sicanid, deltasi] = searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1);
+      auto [sicanid, deltasi] = searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid + 1*direction);
       LOG(DEBUG) << "E4\n";
-      auto [sccanid, deltasc] = searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid + 1);
+      auto [sccanid, deltasc] = searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid + 1*direction);
 
       if (deltasi < deltasc)
       {
@@ -122,12 +124,13 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
   // HGCalHSi = 9, layer 1-22
   // HGCalHSc = 10, layer 9-22
   // HGCalTrigger = 11 X
+  int direction = (layerid>0) ? 1:-1;
 
   // For the ee cal we can easily move backwards
   if (detectorid == DetId::HGCalEE)
   {
     //First layer as no previous cells, point to 0.
-    if (layerid == 1)
+    if (std::abs(layerid) == 1)
     {
       LOG(DEBUG) << "A\n";
       return DetId(0);
@@ -136,22 +139,22 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
     {
       LOG(DEBUG) << "B\n";
       // Get the cell with the least x,y distance in the n-1th layer of the EE.
-      return searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, layerid - 1).first;
+      return searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, layerid - direction).first;
     }
   }
   if (detectorid == DetId::HGCalHSi || detectorid == DetId::HGCalHSc)
   {
-    // from the frist layer in the hadronic part go back to the last layer in the EE
-    if (layerid == 1)
+    // from the first layer in the hadronic part go back to the last layer in the EE
+    if (std::abs(layerid) == 1)
     {
       LOG(DEBUG) << "D\n";
-      return searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, 28).first;
+      return searchInLayer(cellId, hash, DetId::HGCalEE, subdetid, direction*28).first;
     }
     // HSc starts with layer 9, so for all cells from layer <10 we can just search in the Si part
-    else if (layerid < 10)
+    else if (std::abs(layerid) < 10)
     {
       LOG(DEBUG) << "C\n";
-      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1).first;
+      return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - direction).first;
     }
 
     // for layer > 10, both detectors need to be searched for the closest cells
@@ -162,19 +165,19 @@ DetId GeoExtractor::findPreviousCell(DetId cellId)
       // Avoid searching bot subdetectors if one of them doenst have cells in the layer:
       Det &detectorsi = detcol.detectors[DetId::HGCalHSi];
       Subdet &subdetsi = detectorsi.subdetectors[subdetid];
-      if (subdetsi.layers.find(layerid - 1) == subdetsi.layers.end())
+      if (subdetsi.layers.find(layerid - direction) == subdetsi.layers.end())
       {
-        return searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid - 1).first;
+        return searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid - direction).first;
       }
       Det &detectorsc = detcol.detectors[DetId::HGCalHSc];
       Subdet &subdetsc = detectorsc.subdetectors[subdetid];
-      if (subdetsc.layers.find(layerid - 1) == subdetsc.layers.end())
+      if (subdetsc.layers.find(layerid - direction) == subdetsc.layers.end())
       {
-        return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1).first;
+        return searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - direction).first;
       }
 
-      auto [sicanid, deltasi] = searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - 1);
-      auto [sccanid, deltasc] = searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid - 1);
+      auto [sicanid, deltasi] = searchInLayer(cellId, hash, DetId::HGCalHSi, subdetid, layerid - direction);
+      auto [sccanid, deltasc] = searchInLayer(cellId, hash, DetId::HGCalHSc, subdetid, layerid - direction);
       if (deltasi < deltasc)
       {
         return sicanid;
@@ -198,7 +201,7 @@ std::pair<DetId, float> GeoExtractor::searchInLayer(
     CellHash hash,
     unsigned int targetdetectorid,
     unsigned int targetsubdetid,
-    unsigned int targetlayerid)
+    int targetlayerid)
 {
   LOG(DEBUG) << "Start searchInLayer for Id " << originCellDetID.rawId() << "\n";
 
@@ -314,7 +317,7 @@ DetId GeoExtractor::getStartCell(CellHash hash)
     LOG(DEBUG) << *cellptr << "\n";
     HGCSiliconDetId siid = HGCSiliconDetId(cellptr->globalid);
     LOG(DEBUG) << "startcell: \n";
-    LOG(DEBUG) << printCell(cellptr->globalid.det(), cellptr->globalid.subdetId(), recHitTools.getLayer(cellptr->globalid), siid.waferUV(), siid.cellUV());
+    LOG(DEBUG) << printCell(cellptr->globalid.det(), cellptr->globalid.subdetId(), realLayerFromId(cellptr->globalid), siid.waferUV(), siid.cellUV());
 
     return cellptr->globalid;
   }
