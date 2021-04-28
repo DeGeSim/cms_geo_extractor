@@ -61,7 +61,8 @@ public:
       outfile << tabs(indentlevel) << "type: " << type << "\n";
     }
     outfile << tabs(indentlevel) << "x: " << x << "\n";
-    outfile << tabs(indentlevel) << "y: " << x << "\n";
+    outfile << tabs(indentlevel) << "y: " << y << "\n";
+    outfile << tabs(indentlevel) << "z: " << z << "\n";
     outfile << tabs(indentlevel) << "next: " << next.rawId() << "\n";
   }
   void printmap(std::ofstream &outfile, int indentlevel = 0)
@@ -86,6 +87,7 @@ std::ostream &operator<<(std::ostream &os, Cell &c)
   os << "globalid: " << c.globalid.rawId() << ", ";
   os << "x: " << c.x << ", ";
   os << "y: " << c.y << ", ";
+  os << "y: " << c.z << ", ";
   os << "next: " << c.next.rawId() << ", ";
   os << "previous: " << c.previous.rawId() << ", ";
   os << "neighbors: [";
