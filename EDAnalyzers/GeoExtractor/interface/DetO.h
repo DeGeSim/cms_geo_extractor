@@ -87,7 +87,7 @@ std::ostream &operator<<(std::ostream &os, Cell &c)
   os << "globalid: " << c.globalid.rawId() << ", ";
   os << "x: " << c.x << ", ";
   os << "y: " << c.y << ", ";
-  os << "y: " << c.z << ", ";
+  os << "z: " << c.z << ", ";
   os << "next: " << c.next.rawId() << ", ";
   os << "previous: " << c.previous.rawId() << ", ";
   os << "neighbors: [";

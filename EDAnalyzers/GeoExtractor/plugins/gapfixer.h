@@ -347,14 +347,27 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
   LOG(DEBUG) << "id2 pos" << p2 << "\n";
 
   LOG(DEBUG) << "centers diff: " << dist(p1, p2) << "\n";
-  LOG(DEBUG) << "eq centers diff: " << std::sqrt((cp1->x - cp2->x) * (cp1->x - cp2->x) + (cp1->y - cp2->y) * (cp1->y - cp2->y)) << "\n";
+  LOG(DEBUG) << "eq centers diff: " << std::sqrt((cp1->x - cp2->x) * (cp1->x - cp2->x) + (cp1->y - cp2->y) * (cp1->z - cp2->z)) << "\n";
 
-  std::vector<GlobalPoint>::iterator corner1it = v_corners1.begin();
-  std::vector<GlobalPoint>::iterator corner2it = v_corners2.begin();
+  std::vector<GlobalPoint>::iterator cell1corner = v_corners1.begin();
+  std::vector<GlobalPoint>::iterator cell2corner = v_corners2.begin();
 
+  //Start witht the cells closest to  the other center:
+  double olddist= dist(*cell1corner, p2);
+  for (std::vector<GlobalPoint>::iterator i = v_corners1.begin()+1; i != v_corners1.end(); ++i)
+    {
+      if (dist(*i, p2) < olddist)
+      cell1corner=i;
+    }
+  olddist= dist(*cell2corner, p1);
+  for (std::vector<GlobalPoint>::iterator i = v_corners2.begin()+1; i != v_corners2.end(); ++i)
+  {
+    if (dist(*i, p1) < olddist)
+    cell2corner=i;
+  }
   //Find the minimum distance between the corners
   LOG(DEBUG) << "pre dist\n";
-  double delta = dist(*corner1it, *corner2it);
+  double delta = dist(*cell1corner, *cell2corner);
   double tmpdelta;
   bool improvement = true;
   LOG(DEBUG) << "pre loop\n";
@@ -363,108 +376,108 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
     LOG(DEBUG) << "delta " << delta << " ";
     improvement = false;
     //Corner1 forward
-    if (corner1it + 1 != v_corners1.end())
+    if (cell1corner + 1 != v_corners1.end())
     {
-      tmpdelta = dist(*(corner1it + 1), *corner2it);
+      tmpdelta = dist(*(cell1corner + 1), *cell2corner);
       if (tmpdelta < delta)
       {
-        corner1it++;
+        cell1corner++;
         delta = tmpdelta;
         improvement = true;
-        LOG(DEBUG) << "Corner1 ++ noloop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        LOG(DEBUG) << "Corner1 ++ noloop c1 " << (cell1corner - v_corners1.begin()) << " c2 " << (cell2corner - v_corners2.begin()) << "\n";
         continue;
       }
     }
     //Corner1 vector loop
     else
     {
-      tmpdelta = dist(*v_corners1.begin(), *corner2it);
+      tmpdelta = dist(*v_corners1.begin(), *cell2corner);
       if (tmpdelta < delta)
       {
-        corner1it = v_corners1.begin();
+        cell1corner = v_corners1.begin();
         delta = tmpdelta;
         improvement = true;
-        LOG(DEBUG) << "Corner1 ++ loop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        LOG(DEBUG) << "Corner1 ++ loop c1 " << (cell1corner - v_corners1.begin()) << " c2 " << (cell2corner - v_corners2.begin()) << "\n";
         continue;
       }
     }
     //Corner1 backwards
-    if (corner1it != v_corners1.begin())
+    if (cell1corner != v_corners1.begin())
     {
-      tmpdelta = dist(*(corner1it - 1), *corner2it);
+      tmpdelta = dist(*(cell1corner - 1), *cell2corner);
       if (tmpdelta < delta)
       {
-        corner1it--;
+        cell1corner--;
         delta = tmpdelta;
         improvement = true;
-        LOG(DEBUG) << "Corner1 -- noloop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        LOG(DEBUG) << "Corner1 -- noloop c1 " << (cell1corner - v_corners1.begin()) << " c2 " << (cell2corner - v_corners2.begin()) << "\n";
         continue;
       }
     }
     //Corner1 vector loop
     else
     {
-      tmpdelta = dist(*(v_corners1.end() - 1), *corner2it);
+      tmpdelta = dist(*(v_corners1.end() - 1), *cell2corner);
       if (tmpdelta < delta)
       {
-        corner1it = (v_corners1.end() - 1);
+        cell1corner = (v_corners1.end() - 1);
         delta = tmpdelta;
         improvement = true;
-        LOG(DEBUG) << "Corner1 -- loop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        LOG(DEBUG) << "Corner1 -- loop c1 " << (cell1corner - v_corners1.begin()) << " c2 " << (cell2corner - v_corners2.begin()) << "\n";
         continue;
       }
     }
     //
     //Conver vector 2
     //
-    if (corner2it + 1 != v_corners2.end())
+    if (cell2corner + 1 != v_corners2.end())
     {
-      tmpdelta = dist(*(corner2it + 1), *corner1it);
+      tmpdelta = dist(*(cell2corner + 1), *cell1corner);
       if (tmpdelta < delta)
       {
-        corner2it++;
+        cell2corner++;
         delta = tmpdelta;
         improvement = true;
-        LOG(DEBUG) << "Corner2 ++ noloop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        LOG(DEBUG) << "Corner2 ++ noloop c1 " << (cell1corner - v_corners1.begin()) << " c2 " << (cell2corner - v_corners2.begin()) << "\n";
         continue;
       }
     }
     //Corner1 vector loop
     else
     {
-      tmpdelta = dist(*v_corners2.begin(), *corner1it);
+      tmpdelta = dist(*v_corners2.begin(), *cell1corner);
       if (tmpdelta < delta)
       {
-        corner2it = v_corners2.begin();
+        cell2corner = v_corners2.begin();
         delta = tmpdelta;
         improvement = true;
-        LOG(DEBUG) << "Corner2 ++ loop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        LOG(DEBUG) << "Corner2 ++ loop c1 " << (cell1corner - v_corners1.begin()) << " c2 " << (cell2corner - v_corners2.begin()) << "\n";
         continue;
       }
     }
     //Corner1 backwards
-    if (corner2it != v_corners2.begin())
+    if (cell2corner != v_corners2.begin())
     {
-      tmpdelta = dist(*(corner2it - 1), *corner1it);
+      tmpdelta = dist(*(cell2corner - 1), *cell1corner);
       if (tmpdelta < delta)
       {
-        corner2it--;
+        cell2corner--;
         delta = tmpdelta;
         improvement = true;
-        LOG(DEBUG) << "Corner2 -- noloop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        LOG(DEBUG) << "Corner2 -- noloop c1 " << (cell1corner - v_corners1.begin()) << " c2 " << (cell2corner - v_corners2.begin()) << "\n";
         continue;
       }
     }
     //Corner1 vector loop
     else
     {
-      tmpdelta = dist(*(v_corners2.end() - 1), *corner1it);
+      tmpdelta = dist(*(v_corners2.end() - 1), *cell1corner);
       if (tmpdelta < delta)
       {
-        corner2it = (v_corners2.end() - 1);
+        cell2corner = (v_corners2.end() - 1);
         delta = tmpdelta;
         improvement = true;
-        LOG(DEBUG) << "Corner2 -- loop c1 " << (corner1it - v_corners1.begin()) << " c2 " << (corner2it - v_corners2.begin()) << "\n";
+        LOG(DEBUG) << "Corner2 -- loop c1 " << (cell1corner - v_corners1.begin()) << " c2 " << (cell2corner - v_corners2.begin()) << "\n";
         continue;
       }
     }
