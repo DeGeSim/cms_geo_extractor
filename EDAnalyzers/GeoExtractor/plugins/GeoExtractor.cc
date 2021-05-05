@@ -238,7 +238,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   }
   LOG(INFO) << "Assign the Z neighbors."
             << "\n";
-  assignZNeighbors(v_validHGCalIds);
+  // assignZNeighbors(v_validHGCalIds);
   LOG(INFO) << "Done.\n";
 
   LOG(INFO) << "Start fixing the bounderies.\n";

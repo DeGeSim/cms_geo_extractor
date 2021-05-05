@@ -8,7 +8,6 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
   {
     m_rej[detectorid];
     m_rej[detectorid]["det"] = 0;
-    m_rej[detectorid]["x"] = 0;
     m_rej[detectorid]["circle"] = 0;
     m_rej[detectorid]["z"] = 0;
   }
@@ -22,17 +21,9 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
       continue;
     }
     m_rej[detectorid]["det"]++;
-    // Radius = 25
 
     auto x = recHitTools.getPosition(v_allCellIds[i]).x();
-    if (x < -25 || x > 25)
-    {
-      continue;
-    }
-    m_rej[detectorid]["x"]++;
-
     auto y = recHitTools.getPosition(v_allCellIds[i]).y();
-
     double dx = (x - selection_x);
     double dy = (y - selection_y);
     double delta = std::sqrt(dx * dx + dy * dy);
@@ -53,14 +44,12 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
     v_validHGCalIds.push_back(v_allCellIds[i]);
   }
   LOG(INFO) << "\tdet    ";
-  LOG(INFO) << "x\t";
   LOG(INFO) << "circle\t";
   LOG(INFO) << "z \n";
   for (auto detectorid : v_HGCalDets)
   {
     LOG(INFO) << detectorid << "\t";
     LOG(INFO) << m_rej[detectorid]["det"] << "\t";
-    LOG(INFO) << m_rej[detectorid]["x"] << "\t";
     LOG(INFO) << m_rej[detectorid]["circle"] << "\t";
     LOG(INFO) << m_rej[detectorid]["z"] << "\n";
   }

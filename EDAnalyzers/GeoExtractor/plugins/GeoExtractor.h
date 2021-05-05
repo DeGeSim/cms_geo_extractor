@@ -60,8 +60,7 @@ private:
   bool rangecond(std::vector<PosListTup>::iterator iter, Cell *cellptr);
   double dist(GlobalPoint &p1, GlobalPoint &p2);
   double xposdiff(std::vector<PosListTup>::iterator iter, Cell *cellptr);
-  double xposdiffalt(std::vector<PosListTup>::iterator iter, Cell *cellptr);
-
+  
   ////Utils
   //Get the det/subdet/wafer/cell id as a tuple
   CellHash getCellHash(const DetId &iterId);

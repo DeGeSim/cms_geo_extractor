@@ -3,13 +3,17 @@
 // wraps findNextCell and loops over the ids
 void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
 {
-  LOG(INFO) << "stating xposlist setup\n";
+  // LOGCFG.level = DEBUG;
+  LOG(INFO) << "starting xposlist setup\n";
   setupXLists();
   LOG(INFO) << "xposlist setup done\n";
   for (int i = 0; i < (int)v_validHGCalIds.size(); i++)
   {
     //skip for HGCalEE and for layers where HSc and HSi dont overlap
     DetId iterId = v_validHGCalIds[i];
+
+    //Cell with super irregular geometry
+    // if (iterId.rawId() != 2752652289) continue;
 
     if (iterId.det() != DetId::HGCalHSc)
       continue;
@@ -24,6 +28,7 @@ void GeoExtractor::fixGap(std::vector<DetId> &v_validHGCalIds)
 
     assignGapNeighbors(cellptr);
   }
+  // LOGCFG.level = internalDebugLevel;
 }
 
 void GeoExtractor::setupXLists()
@@ -47,10 +52,10 @@ void GeoExtractor::setupXLists()
         xdistmap[detectorid][subdetid][layerid];
         if (detectorid == DetId::HGCalHSi)
         {
-          LOG(DEBUG) << detectorid << layerid << "wafers:" << (int)layer.wafers.size() << "\n";
+          LOG(DEBUG) << "detectorid  " << detectorid << " layerid " << layerid << "wafers:" << (int)layer.wafers.size() << "\n";
           for (auto &[waferid, wafer] : layer.wafers)
           {
-            LOG(DEBUG) << detectorid << layerid << waferid << "cells:" << (int)wafer.cells.size() << "\n";
+            LOG(DEBUG) << "detectorid  " << detectorid << " layerid " << layerid << "waferid " << waferid << "cells: " << (int)wafer.cells.size() << "\n";
             for (auto &[cellid, cell] : wafer.cells)
             {
               xdistmap[detectorid][subdetid][layerid].push_back(std::make_tuple(cell.x, &cell));
@@ -59,7 +64,7 @@ void GeoExtractor::setupXLists()
         }
         else
         {
-          LOG(DEBUG) << detectorid << layerid << "tiles:" << (int)layer.tiles.size() << "\n";
+          LOG(DEBUG) << "detectorid  " << detectorid << " layerid " << layerid << "tiles:" << (int)layer.tiles.size() << "\n";
           for (auto &[cellid, cell] : layer.tiles)
           {
             xdistmap[detectorid][subdetid][layerid].push_back(std::make_tuple(cell.x, &cell));
@@ -77,8 +82,10 @@ void GeoExtractor::assignGapNeighbors(Cell *cellptr)
 {
   auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(cellptr->globalid);
 
-  LOG(DEBUG) << "assignGapNeighbors cell " << cellptr->globalid.rawId() << "\n";
+  LOG(DEBUG) << "GeoExtractor::assignGapNeighbors cell " << cellptr->globalid.rawId() << "\n";
+  LOG(DEBUG) << *cellptr << "\n";
   LOG(DEBUG) << getCellHash(cellptr->globalid) << "\n";
+  // Only cells from HGCalHSc are used now
   if (detectorid == DetId::HGCalHSi)
   {
     //skip if layer doesnt exist or has not been initialized because it is empty.
@@ -93,15 +100,19 @@ void GeoExtractor::assignGapNeighbors(Cell *cellptr)
     if (layers.find(layerid) == layers.end())
       return;
   }
-
-  //xL is the of the (x,cellptr) pair presorted by x, the higher the index, the higher the number.
+  LOG(DEBUG) << "Skipcheck done.\n";
+  //xL is the of the (x,cellptr) pair presorted by x, the higher the index, the higher x.
   std::vector<PosListTup> xL = (detectorid == DetId::HGCalHSi) ? xdistmap[DetId::HGCalHSc][subdetid][layerid] : xdistmap[DetId::HGCalHSi][subdetid][layerid];
+  LOG(DEBUG) << "Got  xdistmap with size " << (int)xL.size() << "\n";
 
+  // If the window is very small, the list may be empty.
+  if ((int)xL.size()==0) return;
   //These are the boundaries with cells, that could fulfill the distance condition,
   //they are initialized with the first and the last element
   std::vector<PosListTup>::iterator upper = xL.end() - 1;
   std::vector<PosListTup>::iterator lower = xL.begin();
 
+  //Abort if the x position of the cell can not be reached from the highest/lowest element in the list
   if (std::get<0>(*upper) < cellptr->x - maxSearchDelta)
   {
     LOG(DEBUG) << "xL highest element xpos is less than the target xpos - maxSearchDelta, aborting gapneighbor search for this cell.\n";
@@ -112,7 +123,6 @@ void GeoExtractor::assignGapNeighbors(Cell *cellptr)
     LOG(DEBUG) << "xL lowest element xpos is lower than the target xpos + maxSearchDelta, aborting gapneighbor search for this cell.\n";
     return;
   }
-
   ///////////////////
   // Now find any element in the range xdelta around the xposition, a binary search.
   ///////////////////
@@ -266,29 +276,30 @@ void GeoExtractor::assignGapNeighbors(Cell *cellptr)
   LOG(DEBUG) << "original cell: " << *cellptr << "\n";
   LOG(DEBUG) << "upper: " << *std::get<1>(*upper) << "\n";
   LOG(DEBUG) << "xposdiff: " << xposdiff(upper, cellptr) << "\n";
-  LOG(DEBUG) << "xposdiffalt: " << xposdiffalt(upper, cellptr) << "\n";
   LOG(DEBUG) << "lower: " << *std::get<1>(*lower) << "\n";
   LOG(DEBUG) << "xposdiff: " << xposdiff(lower, cellptr) << "\n";
-  LOG(DEBUG) << "xposdiffalt: " << xposdiffalt(lower, cellptr) << "\n";
 
-  if (std::distance(lower, lower) != 0 || std::distance(upper, upper))
-  {
-    exit(1);
-  }
   //Now upper points to the highest element in the range, lower to the lowerest
   //Now also check the condition in y and save the cellpointer to a vector
   std::vector<PosListTup> v_newGapNeighbors;
-  LOG(DEBUG) << "For " << cellptr->globalid.rawId() << "\n";
+  LOG(DEBUG) << "After filtering for x, check all candidates for " << cellptr->globalid.rawId() << "\n";
   for (vector<PosListTup>::iterator candit = lower; candit <= upper; candit++)
   {
     Cell *cellcanditptr = std::get<1>(*candit);
-    if (cellcanditptr->globalid == cellptr->globalid)
-      continue;
+    if (cellcanditptr->globalid == cellptr->globalid){
+      LOG(ERROR) << "Error! cellcanditptr->globalid == cellptr->globalid\n";
+      LOG(ERROR) << "cellcandit: \n" << *cellcanditptr;
+      exit(EXIT_FAILURE);
+    }
+
+    //Filter for x and y now
     double dx = (cellcanditptr->x - cellptr->x);
     double dy = (cellcanditptr->y - cellptr->y);
     if (std::sqrt(dx * dx + dy * dy) > maxSearchDelta)
       continue;
 
+    // Now check the real criterion (maxDeltaHScHSiGap)
+    // with the minimum distance between the edges intead of the centers:
     double delta = cellsDelta(cellptr, cellcanditptr);
     if (delta < maxDeltaHScHSiGap)
     {
@@ -347,7 +358,26 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
   LOG(DEBUG) << "id2 pos" << p2 << "\n";
 
   LOG(DEBUG) << "centers diff: " << dist(p1, p2) << "\n";
-  LOG(DEBUG) << "eq centers diff: " << std::sqrt((cp1->x - cp2->x) * (cp1->x - cp2->x) + (cp1->y - cp2->y) * (cp1->z - cp2->z)) << "\n";
+
+  double foodist= 999999;
+  double curdist;
+  std::vector<GlobalPoint>::iterator bestc1;
+  std::vector<GlobalPoint>::iterator bestc2;
+  for (std::vector<GlobalPoint>::iterator c1it = v_corners1.begin(); c1it != v_corners1.end(); ++c1it) {
+    for (std::vector<GlobalPoint>::iterator c2it = v_corners2.begin(); c2it != v_corners2.end(); ++c2it){
+      curdist =dist(*c1it,*c2it);
+      if (curdist<foodist){
+        foodist = curdist;
+        bestc1=c1it;
+        bestc2=c2it;
+      }
+    }
+  }
+  LOG(WARN) << "MinimumDelta "<< foodist << " c1 " << (bestc1 - v_corners1.begin()) << *bestc1 << " c2 " << (bestc2 - v_corners2.begin()) << *bestc2 << "\n";
+
+  return foodist;
+  //The following algorithm solves the problem much faster then the previous double loop, but doesnt yield the minumum distance for irregular geometry, eg. around 2752652289.
+
 
   std::vector<GlobalPoint>::iterator cell1corner = v_corners1.begin();
   std::vector<GlobalPoint>::iterator cell2corner = v_corners2.begin();
@@ -359,12 +389,16 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
       if (dist(*i, p2) < olddist)
       cell1corner=i;
     }
+  LOG(DEBUG)<< "cell 1 Center: "<< p1 << "Start edge for cell 1 " << *cell1corner << " at distance to the other center "<< olddist <<"\n" ;
+
   olddist= dist(*cell2corner, p1);
   for (std::vector<GlobalPoint>::iterator i = v_corners2.begin()+1; i != v_corners2.end(); ++i)
   {
     if (dist(*i, p1) < olddist)
     cell2corner=i;
   }
+  LOG(DEBUG)<< "cell 2 Center: "<< p2 << "Start edge for cell 2 " << *cell2corner << " at distance to the other center "<< olddist <<"\n" ;
+
   //Find the minimum distance between the corners
   LOG(DEBUG) << "pre dist\n";
   double delta = dist(*cell1corner, *cell2corner);
@@ -373,7 +407,7 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
   LOG(DEBUG) << "pre loop\n";
   while (improvement)
   {
-    LOG(DEBUG) << "delta " << delta << " ";
+    LOG(DEBUG) << "Corner1:" << *cell1corner << " Corner2: " << *cell2corner << " delta "<< delta <<"\n";
     improvement = false;
     //Corner1 forward
     if (cell1corner + 1 != v_corners1.end())
@@ -483,8 +517,6 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
     }
   }
   LOG(DEBUG) << "final delta " << delta << "\n\n";
-  if (dist(p1, p2) < delta)
-    exit(EXIT_FAILURE);
   return delta;
 }
 
@@ -493,11 +525,11 @@ bool GeoExtractor::rangecond(std::vector<PosListTup>::iterator iter, Cell *cellp
   return (std::abs(std::get<0>(*iter) - cellptr->x) < maxSearchDelta);
 }
 
+// double GeoExtractor::xposdiff(std::vector<PosListTup>::iterator iter, Cell *cellptr)
+// {
+//   return (std::abs(std::get<0>(*iter) - cellptr->x));
+// }
 double GeoExtractor::xposdiff(std::vector<PosListTup>::iterator iter, Cell *cellptr)
-{
-  return (std::abs(std::get<0>(*iter) - cellptr->x));
-}
-double GeoExtractor::xposdiffalt(std::vector<PosListTup>::iterator iter, Cell *cellptr)
 {
   return (std::abs(std::get<1>(*iter)->x - cellptr->x));
 }
