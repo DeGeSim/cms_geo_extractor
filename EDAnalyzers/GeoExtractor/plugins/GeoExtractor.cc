@@ -214,7 +214,6 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
     {
       HGCScintillatorDetId scid = HGCScintillatorDetId(iterId);
 
-      // cellptr->type = scid.type();
       cellptr->type = scid.sipm();
       cellptr->issilicon = false;
     }
@@ -238,7 +237,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   }
   LOG(INFO) << "Assign the Z neighbors."
             << "\n";
-  // assignZNeighbors(v_validHGCalIds);
+  assignZNeighbors(v_validHGCalIds);
   LOG(INFO) << "Done.\n";
 
   LOG(INFO) << "Start fixing the bounderies.\n";

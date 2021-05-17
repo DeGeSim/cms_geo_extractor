@@ -235,10 +235,6 @@ void GeoExtractor::assignGapNeighbors(Cell *cellptr)
       break;
     }
     iterations++;
-    if (iterations > 14)
-    {
-      exit(0);
-    }
   }
   LOG(DEBUG) << "Lower bound found in " << iterations << " iterations.\n";
 
@@ -265,10 +261,6 @@ void GeoExtractor::assignGapNeighbors(Cell *cellptr)
       break;
     }
     iterations++;
-    if (iterations > 14)
-    {
-      exit(0);
-    }
   }
   LOG(DEBUG) << "Upper bound found in " << iterations << "iterations.\n";
 
