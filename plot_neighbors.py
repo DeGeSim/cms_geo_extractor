@@ -34,6 +34,9 @@ rf = uproot.open("output/DetIdLUT.root")
 arr = rf["analyzer/tree"].arrays()
 keydf = ak.to_pandas(arr[0])
 keydf = keydf.set_index("globalid")
+detIDD = {8: "EE", 9: "HSi", 10: "HSc"}
+keydf["detectorid"] = keydf["detectorid"].apply(lambda x: detIDD[x])
+
 keydf.head()
 # %%
 # Debug code to see the if the arrays are filled correctly
@@ -79,7 +82,7 @@ else:
         pickle.dump(geoD, f)
 
 # %%
-plotall = False
+plotall = True
 
 # %%
 # # Types of the detector cells
@@ -90,7 +93,7 @@ if plotall:
         kind="count",
         hue="detectorid",
     )
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.savefig("plots/CellTypes.pdf")
 # %%
 # Number of neighbors
@@ -119,7 +122,7 @@ if plotall:
             layerid = i * (len(axes[0]) - 1) + j + 1
             if layerid >= 23:
                 continue
-            dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] == 8)]
+            dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] == "EE")]
             print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
             sns.histplot(
                 x="nneighbors",
@@ -149,7 +152,7 @@ if plotall:
             layerid = i * (len(axes[0]) - 1) + j + 1
             if layerid >= 23:
                 continue
-            dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
+            dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != "EE")]
             print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
             sns.histplot(
                 x="nneighbors",
@@ -161,7 +164,7 @@ if plotall:
             )
             axes[i][j].set_title(f"layer {layerid}")
             axes[i][j].set_yscale("log")
-    fig.suptitle("Number of Neighbors per Cell in HSi (9) and HSc(10)")
+    fig.suptitle("Number of Neighbors per Cell in HSi and HSc")
 
     plt.tight_layout()
     fig.subplots_adjust(top=0.95)
@@ -183,7 +186,7 @@ if plotall:
                 continue
             dfsel = keydf[
                 (keydf["layerid"] == layerid)
-                & (keydf["detectorid"] != 8)
+                & (keydf["detectorid"] != "EE")
                 & (keydf["ngapneighbors"] != 0)
             ]
             print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
@@ -215,7 +218,7 @@ if plotall:
             layerid = i * (len(axes[0]) - 1) + j + 1
             if layerid >= 23:
                 continue
-            dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
+            dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != "EE")]
             dfsel = dfsel.assign(
                 totalneighbors=dfsel["nneighbors"] + dfsel["ngapneighbors"]
             )
@@ -231,7 +234,7 @@ if plotall:
             axes[i][j].set_title(f"layer {layerid}")
             axes[i][j].set_yscale("log")
     fig.suptitle(
-        "Number of Neighbors per Cell in HSi (9) and HSc(10) after fixing the gaps."
+        "Number of Neighbors per Cell in HSi and HSc after fixing the gaps."
     )
 
     plt.tight_layout()
@@ -253,12 +256,12 @@ if plotall:
             layerid = i * (len(axes[0]) - 1) + j + 1
             if layerid >= 23:
                 continue
-            dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
+            dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != "EE")]
 
             dfsel = pd.concat(
                 [
-                    dfsel[(keydf["detectorid"] == 9)],
-                    dfsel[(keydf["detectorid"] == 10)],
+                    dfsel[(keydf["detectorid"] == "HSi")],
+                    dfsel[(keydf["detectorid"] == "HSc")],
                 ]
             )
             print(f"pos {i} {j} => {layerid} ({len(dfsel)})")
@@ -309,7 +312,7 @@ if plotall:
 
         fig = plt.figure(figsize=(10, 12))
 
-        dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != 8)]
+        dfsel = keydf[(keydf["layerid"] == layerid) & (keydf["detectorid"] != "EE")]
         print(f"layer {layerid}")
 
         sns.scatterplot(
@@ -341,7 +344,7 @@ if plotall:
                     # that dont have a dicrected connection
                     and originid not in cellsDirectedS
                     and targetid not in cellsDirectedS
-                    #every third cells
+                    # every third cells
                     and originid % 3 != 0
                 ):
                     continue
