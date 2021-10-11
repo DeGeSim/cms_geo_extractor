@@ -13,3 +13,5 @@ output
 
 .ipynb_checkpoints
 *.pdf
+logandrun/
+
