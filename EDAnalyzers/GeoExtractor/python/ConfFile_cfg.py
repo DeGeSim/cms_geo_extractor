@@ -14,6 +14,7 @@ process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("Configuration.EventContent.EventContent_cff")
 process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Configuration.StandardSequences.RawToDigi_cff")
+process.load('Geometry.HGCalCommonData.testGeometryV14_cff')
 process.load("Configuration.StandardSequences.L1Reco_cff")
 process.load("Configuration.StandardSequences.Reconstruction_cff")
 process.load("Configuration.StandardSequences.RecoSim_cff")
@@ -24,8 +25,6 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 
 process.GlobalTag = GlobalTag(process.GlobalTag, "auto:phase2_realistic_T15", "")
 
-process.load("Configuration.Geometry.GeometryExtended2026D49Reco_cff")
-process.load("Configuration.Geometry.GeometryExtended2026D49_cff")
 
 
 ############################## Parse arguments ##############################
