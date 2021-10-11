@@ -28,7 +28,7 @@ std::vector<DetId> GeoExtractor::filterCellIds(const std::vector<DetId> v_allCel
     double dy = (y - selection_y);
     double delta = std::sqrt(dx * dx + dy * dy);
 
-    if (delta > selectionRadius)
+    if (delta > selectionRadius && filter_cylinder)
     {
       continue;
     }

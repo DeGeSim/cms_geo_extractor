@@ -50,6 +50,8 @@ for key in settingsD:
         settingsD[key] = cms.int32(settingsD[key])
     if type(settingsD[key]) is float:
         settingsD[key] = cms.double(settingsD[key])
+    if type(settingsD[key]) is bool:
+        settingsD[key] = cms.bool(settingsD[key])
     if type(settingsD[key]) is str:
         settingsD[key] = cms.string(settingsD[key])
 

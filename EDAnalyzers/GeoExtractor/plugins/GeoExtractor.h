@@ -80,6 +80,7 @@ private:
   //Variables for the parameters to be passed
   double maxSearchDelta;
   double maxDeltaHScHSiGap;
+  bool filter_cylinder;
   double selectionRadius;
   double selection_x;
   double selection_y;
@@ -93,6 +94,7 @@ GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
   selectionRadius = iConfig.getParameter<double>("selectionRadius");
   selection_y = iConfig.getParameter<double>("selection_y");
   selection_x = iConfig.getParameter<double>("selection_x");
+  filter_cylinder = iConfig.getParameter<bool>("filter_cylinder");
 
   usesResource("TFileService");
   treeOutput = new TreeOutputInfo::TreeOutput("tree", fs);
