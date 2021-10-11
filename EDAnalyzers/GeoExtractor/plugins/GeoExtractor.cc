@@ -180,10 +180,30 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
   //get all valid cells in the geometry, will be filtered later
   const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
 
+  // DetId missingID = DetId(2227439784);
+  // LOG(INFO) << "missingID det." << missingID.det() << "subdet" << missingID.subdetId() << "\n";
+
+  // LOG(INFO) << "missingID x" <<recHitTools.getPosition(missingID).x() << "\n";
+  // LOG(INFO) << "missingID y" <<recHitTools.getPosition(missingID).y() << "\n";
+  // LOG(INFO) << "missingID z" <<recHitTools.getPosition(missingID).z() << "\n";
+  // LOG(INFO) << "missingID layer " <<recHitTools.getLayer(missingID) << "\n";
+
+  // if (*std::find(v_allCellIds.begin(), v_allCellIds.end(), missingID) == missingID) {
+  //     LOG(INFO) << "Id in all ids." << missingID.rawId() << "\n";
+  // } else {
+  //   LOG(INFO) << "Id not in all ids." << missingID.rawId() << "\n";
+  // }
   // Filter the Ids
   LOG(INFO) << "Filter all Cells for HGCal cells."
             << "\n";
   v_validHGCalIds = filterCellIds(v_allCellIds);
+
+  // if (*std::find(v_validHGCalIds.begin(), v_validHGCalIds.end(), missingID) == missingID) {
+  //     LOG(INFO) << "Id in valid ids." << missingID.rawId() << "\n";
+  // } else {
+  //   LOG(INFO) << "Id not in valid ids." << missingID.rawId() << "\n";
+  // }
+  // exit(0);
 
   LOG(INFO) << "Filling the detector structure."
             << "\n";
