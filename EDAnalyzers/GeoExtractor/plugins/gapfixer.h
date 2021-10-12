@@ -365,7 +365,7 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
       }
     }
   }
-  LOG(WARN) << "MinimumDelta "<< foodist << " c1 " << (bestc1 - v_corners1.begin()) << *bestc1 << " c2 " << (bestc2 - v_corners2.begin()) << *bestc2 << "\n";
+  LOG(DEBUG) << "MinimumDelta "<< foodist << " c1 " << (bestc1 - v_corners1.begin()) << *bestc1 << " c2 " << (bestc2 - v_corners2.begin()) << *bestc2 << "\n";
 
   return foodist;
   //The following algorithm solves the problem much faster then the previous double loop, but doesnt yield the minumum distance for irregular geometry, eg. around 2752652289.
