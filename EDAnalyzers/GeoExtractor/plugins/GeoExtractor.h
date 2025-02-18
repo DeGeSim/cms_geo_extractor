@@ -27,9 +27,16 @@ private:
   edm::ESHandle<CaloGeometry> geom;
   hgcal::RecHitTools recHitTools;
 
+
+  edm::ESGetToken<CaloGeometry, CaloGeometryRecord> caloGeomToken_;
+
+  edm::ESGetToken<HGCalGeometry, IdealGeometryRecord> geomEEToken_;
+  edm::ESGetToken<HGCalGeometry, IdealGeometryRecord> geomSiToken_;
+  edm::ESGetToken<HGCalGeometry, IdealGeometryRecord> geomScToken_;
+
   // container for the topologyies
-  std::map<int, edm::ESHandle<HGCalTopology>> m_topo;
-  std::map<int, edm::ESHandle<HGCalGeometry>> m_geom;
+  std::map<int, HGCalTopology> m_topo;
+  std::map<int, const HGCalGeometry*> m_geom;
 
   //The map, that contains the detector structure
   //Det -> SubDet -> Layer -> Wafer -> Cell
@@ -80,13 +87,17 @@ private:
   //Variables for the parameters to be passed
   double maxSearchDelta;
   double maxDeltaHScHSiGap;
-  bool filter_cylinder;
+  bool filter_cylinder, noLayerNeighbors;
   double selectionRadius;
   double selection_x;
   double selection_y;
 };
 
-GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
+GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig):
+  caloGeomToken_(esConsumes<CaloGeometry, CaloGeometryRecord>()),
+  geomEEToken_(esConsumes<HGCalGeometry, IdealGeometryRecord>(edm::ESInputTag("", "HGCalEESensitive"))),
+  geomSiToken_(esConsumes<HGCalGeometry, IdealGeometryRecord>(edm::ESInputTag("", "HGCalHESiliconSensitive"))),
+  geomScToken_(esConsumes<HGCalGeometry, IdealGeometryRecord>(edm::ESInputTag("", "HGCalHEScintillatorSensitive")))
 {
   //
   maxSearchDelta = iConfig.getParameter<double>("maxSearchDelta");
@@ -95,13 +106,16 @@ GeoExtractor::GeoExtractor(const edm::ParameterSet &iConfig)
   selection_y = iConfig.getParameter<double>("selection_y");
   selection_x = iConfig.getParameter<double>("selection_x");
   filter_cylinder = iConfig.getParameter<bool>("filter_cylinder");
+  noLayerNeighbors = iConfig.getParameter<bool>("noLayerNeighbors");
 
   usesResource("TFileService");
   treeOutput = new TreeOutputInfo::TreeOutput("tree", fs);
 
+  /*
   m_topo[DetId::HGCalEE];
   m_topo[DetId::HGCalHSi];
   m_topo[DetId::HGCalHSc];
+  */
 
   v_HGCalDets.push_back(DetId::HGCalEE);
   v_HGCalDets.push_back(DetId::HGCalHSi);

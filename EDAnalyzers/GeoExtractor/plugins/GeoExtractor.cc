@@ -13,6 +13,7 @@
 //
 // Original Author:
 //         Created:  Sat, 11 May 2019 13:14:55 GMT
+//         Updated Oz Amram, July 2024
 //
 //
 
@@ -54,6 +55,7 @@
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
 #include "DataFormats/ForwardDetId/interface/HGCScintillatorDetId.h"
 #include "DataFormats/ForwardDetId/interface/HGCSiliconDetId.h"
+#include "DataFormats/DetId/interface/DetId.h"
 
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/Records/interface/HGCalGeometryRecord.h"
@@ -157,11 +159,18 @@ void GeoExtractor::instanciateMapForCell(DetId &iterId)
 }
 
 // ------------ method called for each event  ------------
-void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup)
+void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &es)
 {
-  iSetup.get<CaloGeometryRecord>().get(geom);
-  recHitTools.setGeometry(*(geom.product()));
+  const CaloGeometry &geom = es.getData(caloGeomToken_);
+  recHitTools.setGeometry(geom);
 
+  const HGCalGeometry &geoEE = es.getData(geomEEToken_);
+  const HGCalGeometry &geoSi = es.getData(geomSiToken_);
+  const HGCalGeometry &geoSc = es.getData(geomScToken_);
+  m_geom[DetId::HGCalEE] =  &geoEE;
+  m_geom[DetId::HGCalHSi] = &geoSi;
+  m_geom[DetId::HGCalHSc] = &geoSc;
+  /*
   iSetup.get<IdealGeometryRecord>().get("HGCalEESensitive", m_geom[DetId::HGCalEE]);
   iSetup.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive", m_geom[DetId::HGCalHSi]);
   iSetup.get<IdealGeometryRecord>().get("HGCalHEScintillatorSensitive", m_geom[DetId::HGCalHSc]);
@@ -176,9 +185,10 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
                << "\n";
     exit(EXIT_FAILURE);
   }
+  */
   int n_printed = 0;
   //get all valid cells in the geometry, will be filtered later
-  const std::vector<DetId> v_allCellIds = geom->getValidDetIds();
+  const std::vector<DetId> v_allCellIds = geom.getValidDetIds();
 
   // DetId missingID = DetId(2227439784);
   // LOG(INFO) << "missingID det." << missingID.det() << "subdet" << missingID.subdetId() << "\n";
@@ -209,14 +219,19 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
             << "\n";
   for (DetId &iterId : v_validHGCalIds)
   {
-    edm::ESHandle<HGCalTopology> &handle_topo_HGCal = m_topo[iterId.det()];
+    //edm::ESHandle<HGCalTopology> &handle_topo_HGCal = m_geom[iterId.det()];
+    auto topo_HGCal = m_geom[iterId.det()]->topology();
 
-    if (!handle_topo_HGCal.isValid())
+    
+    /*
+    if (!topo_HGCal.valid())
     {
       LOG(ERROR) << "Error: Invalid HGCal topology."
                  << "\n";
       exit(EXIT_FAILURE);
     }
+    */
+
     instanciateMapForCell(iterId);
     Cell *cellptr = getCellPtr(iterId);
     auto [detectorid, subdetid, layerid, waferortileid, cellid] = getCellHash(iterId);
@@ -238,7 +253,7 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
       cellptr->issilicon = false;
     }
     // only assign neighbors with valid ids
-    for (auto &neighbor : handle_topo_HGCal->neighbors(iterId))
+    for (auto &neighbor : topo_HGCal.neighbors(iterId))
     {
       if (std::find(v_validHGCalIds.begin(), v_validHGCalIds.end(), neighbor) != v_validHGCalIds.end())
       {
@@ -255,14 +270,19 @@ void GeoExtractor::analyze(const edm::Event &iEvent, const edm::EventSetup &iSet
 
     n_printed++;
   }
-  LOG(INFO) << "Assign the Z neighbors."
-            << "\n";
-  assignZNeighbors(v_validHGCalIds);
-  LOG(INFO) << "Done.\n";
+  if(!noLayerNeighbors){
+      LOG(INFO) << "Assign the Z neighbors."
+                << "\n";
+      assignZNeighbors(v_validHGCalIds);
+      LOG(INFO) << "Done.\n";
 
-  LOG(INFO) << "Start fixing the bounderies.\n";
-  fixGap(v_validHGCalIds);
-  LOG(INFO) << "Done.\n";
+      LOG(INFO) << "Start fixing the bounderies.\n";
+      fixGap(v_validHGCalIds);
+      LOG(INFO) << "Done.\n";
+  }
+  else{
+    printf("Skipping Z neighbors and gap fixing! \n");
+  }
 
   LOG(INFO) << "Filling TBranches.\n";
 

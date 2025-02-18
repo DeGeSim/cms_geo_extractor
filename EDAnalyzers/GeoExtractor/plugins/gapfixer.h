@@ -332,8 +332,8 @@ double GeoExtractor::cellsDelta(Cell *cp1, Cell *cp2)
   LOG(DEBUG) << *getCellPtr(id2) << "\n";
   LOG(DEBUG) << getCellHash(id2) << "\n";
 
-  edm::ESHandle<HGCalGeometry> &geo1 = m_geom[id1.det()];
-  edm::ESHandle<HGCalGeometry> &geo2 = m_geom[id2.det()];
+  const HGCalGeometry *geo1 = m_geom[id1.det()];
+  const HGCalGeometry *geo2 = m_geom[id2.det()];
 
   LOG(DEBUG) << "id1 is present in geo1 " << geo1->present(id1) << "\n";
   LOG(DEBUG) << "id2 is present in geo2 " << geo2->present(id2) << "\n";

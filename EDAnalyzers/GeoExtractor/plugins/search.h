@@ -22,8 +22,8 @@ void GeoExtractor::assignZNeighbors(std::vector<DetId> &v_validHGCalIds)
   }
 }
 
-// This function decices in which layer in which detector(s) to search for the neigbor.
-// The the act lifting is done by the searchInLayer
+// This function decides in which layer in which detector(s) to search for the neighbor.
+// The heavy lifting is done by the searchInLayer
 DetId GeoExtractor::findNextCell(DetId cellId)
 {
   LOG(DEBUG) << "Start findNextCell\n";
@@ -32,17 +32,21 @@ DetId GeoExtractor::findNextCell(DetId cellId)
   LOG(DEBUG) << "find cell for id" << cellId.rawId() << "\n";
   LOG(DEBUG) << getCellHash(cellId) << "\n";
   //
-  // HGCalEE = 8, layer 1-28
+  // HGCalEE = 8,
   // HGCalHSi = 9, layer 1-22
   // HGCalHSc = 10, layer 9-22
   // HGCalTrigger = 11 X
+  //
+
+  //Should look this number up from geometry somehow
+  const int nLayersEE = 26;
   
   int direction = recHitTools.getPosition(cellId).z() > 0 ? 1 : -1;
 
   // For the ee cal we can easily move forward
   if (detectorid == DetId::HGCalEE)
   {
-    if (std::abs(layerid) < 28)
+    if (std::abs(layerid) < nLayersEE)
     {
       LOG(DEBUG) << "A\n";
       return searchInLayer(cellId, hash, detectorid, subdetid, layerid + 1*direction).first;
@@ -265,7 +269,8 @@ DetId GeoExtractor::getStartCell(CellHash hash)
   {
     LOG(ERROR) << "No such detector:\n";
     LOG(ERROR) << printCell(detectorid, subdetid, layerid, waferortileid, cellid);
-    exit(EXIT_FAILURE);
+    //exit(EXIT_FAILURE);
+
   }
   Det &detector = detcol.detectors[detectorid];
 
